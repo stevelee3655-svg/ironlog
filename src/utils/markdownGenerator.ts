@@ -1,11 +1,13 @@
 import { WorkoutSession, SessionExercise } from '../types/workout';
 import { localDateKey } from './date';
-import { 
-  estimate1RM, 
-  lastPerformance, 
-  isStalled, 
-  recommend, 
-  calculateWeeklyVolume 
+import {
+  estimate1RM,
+  lastPerformance,
+  isStalled,
+  recommend,
+  calculateWeeklyVolume,
+  effectiveLoadKg,
+  getBodyWeightKg
 } from './progression';
 
 export interface TopSet {
@@ -67,14 +69,19 @@ function formatTime(isoString?: string): string {
 
 /**
  * 완료된 세트 중 최고 세트 (중량 우선, 같으면 횟수 우선)
+ *
+ * ⚠️ 어시스트 기구는 눈금이 클수록 **쉬운** 세트다. 눈금으로 고르면
+ * 보조를 제일 많이 받은 세트가 「최고 세트」로 뽑힌다. 그래서 실제 부하로 비교한다.
  */
 export function topSetOf(exercise: SessionExercise): TopSet | null {
   const done = exercise.sets.filter(s => s.isCompleted && s.reps > 0);
   if (done.length === 0) return null;
 
+  const loadOf = (kg: number) => effectiveLoadKg(kg, exercise.isAssisted);
+
   let best = done[0];
   for (const s of done) {
-    if (s.weightKg > best.weightKg) {
+    if (loadOf(s.weightKg) > loadOf(best.weightKg)) {
       best = s;
     } else if (s.weightKg === best.weightKg && s.reps > best.reps) {
       best = s;
@@ -125,7 +132,11 @@ export function computeDelta(exercise: SessionExercise, prev?: TopSet): string {
   if (!top) return '';
   if (!prev) return '신규';
 
-  const dw = top.weightKg - prev.weightKg;
+  // 어시스트 기구에서 눈금이 5kg 올랐다는 것은 보조를 5kg 더 받았다는 뜻,
+  // 즉 **부하가 5kg 줄었다**는 뜻이다. 그대로 "+5kg"이라 적으면 퇴보가 발전으로 읽힌다.
+  const dw = exercise.isAssisted
+    ? prev.weightKg - top.weightKg
+    : top.weightKg - prev.weightKg;
   if (dw !== 0) return signed(dw, 'kg');
 
   const dr = top.reps - prev.reps;
@@ -134,7 +145,10 @@ export function computeDelta(exercise: SessionExercise, prev?: TopSet): string {
   return '유지';
 }
 
-export function calculateSessionStats(exercises: SessionExercise[]) {
+export function calculateSessionStats(
+  exercises: SessionExercise[],
+  bodyWeightKg: number = getBodyWeightKg()
+) {
   let completedVolume = 0;
   let completedSets = 0;
   const muscleSet = new Set<string>();
@@ -145,7 +159,10 @@ export function calculateSessionStats(exercises: SessionExercise[]) {
     }
     for (const set of ex.sets) {
       if (set.isCompleted && set.reps > 0) {
-        completedVolume += (set.weightKg || 0) * set.reps;
+        // 어시스트 기구의 눈금은 「도와주는 힘」이라 그대로 곱하면 볼륨이 거꾸로 쌓인다.
+        // 보조를 많이 받은 날일수록 총 볼륨이 커지는 꼴이 된다.
+        completedVolume +=
+          effectiveLoadKg(set.weightKg || 0, ex.isAssisted, bodyWeightKg) * set.reps;
         completedSets += 1;
       }
     }
@@ -164,9 +181,10 @@ export function calculateSessionStats(exercises: SessionExercise[]) {
 export function generateWorkoutMarkdown(
   session: WorkoutSession,
   prevTops: Record<string, TopSet> = {},
-  history: WorkoutSession[] = []
+  history: WorkoutSession[] = [],
+  bodyWeightKg: number = getBodyWeightKg()
 ): string {
-  const stats = calculateSessionStats(session.exercises);
+  const stats = calculateSessionStats(session.exercises, bodyWeightKg);
   const startTimeFormatted = formatTime(session.startTime);
   const endTimeFormatted = formatTime(session.endTime);
   const muscles = session.targetMuscles?.length ? session.targetMuscles : stats.targetMuscles;
@@ -201,22 +219,35 @@ exercises:
     let e1rmVal = 0;
     if (top) {
       const rirStr = top.rir !== undefined ? ` @RIR${top.rir}` : (top.rpe !== undefined ? ` @RPE${top.rpe}` : '');
-      topSetLabel = `${top.weightKg}kg × ${top.reps}${rirStr}`;
-      e1rmVal = estimate1RM(top.weightKg, top.reps, top.rpe);
+      // 어시스트 기구는 눈금이 「도와주는 힘」이다. 그대로 적으면 위키를 읽는 쪽이
+      // 무게로 오해하므로 「보조」를 붙이고, 계산은 실제 부하(체중 − 눈금)로 한다.
+      topSetLabel = ex.isAssisted
+        ? `보조 ${top.weightKg}kg × ${top.reps}${rirStr}`
+        : `${top.weightKg}kg × ${top.reps}${rirStr}`;
+      e1rmVal = estimate1RM(
+        effectiveLoadKg(top.weightKg, ex.isAssisted, bodyWeightKg), top.reps, top.rpe
+      );
     }
 
     let prevE1rmVal = 0;
     if (prev) {
-      prevE1rmVal = estimate1RM(prev.weightKg, prev.reps, prev.rpe);
+      prevE1rmVal = estimate1RM(
+        effectiveLoadKg(prev.weightKg, ex.isAssisted, bodyWeightKg), prev.reps, prev.rpe
+      );
     }
     const e1rmDelta = prev ? signed(e1rmVal - prevE1rmVal, 'kg') : '신규';
 
     let volumeKg = 0;
     ex.sets.forEach(s => {
-      if (s.isCompleted && s.reps > 0) volumeKg += s.weightKg * s.reps;
+      if (s.isCompleted && s.reps > 0) {
+        volumeKg += effectiveLoadKg(s.weightKg, ex.isAssisted, bodyWeightKg) * s.reps;
+      }
     });
 
-    const stalled = isStalled(history, ex.exerciseId);
+    const stalled = isStalled(history, ex.exerciseId, 3, {
+      isAssisted: ex.isAssisted,
+      bodyWeightKg
+    });
 
     // Mock Exercise for recommend
     const exObj = {
@@ -229,11 +260,12 @@ exercises:
       repRangeLow: ex.repRangeLow ?? 8,
       repRangeHigh: ex.repRangeHigh ?? 12,
       defaultRestSeconds: 150,
+      isAssisted: ex.isAssisted,
       createdAt: ''
     };
 
     const combinedHistory = [session, ...history];
-    const nextRec = recommend(exObj, combinedHistory);
+    const nextRec = recommend(exObj, combinedHistory, { bodyWeightKg });
     const nextTarget = nextRec.sets[0] ? `${nextRec.sets[0].weightKg}kg × ${nextRec.sets[0].reps}회` : '-';
 
     md += `  - id: ${ex.exerciseId}
@@ -270,7 +302,7 @@ ${weeklyVolume.underTargetMuscles.map(m => `    - ${yamlString(m)}`).join('\n') 
 deload:
   weeks_since_last: 4
   stalled_exercises:
-${session.exercises.filter(e => isStalled(history, e.exerciseId)).map(e => `    - ${yamlString(e.exerciseName)}`).join('\n') || '    []'}
+${session.exercises.filter(e => isStalled(history, e.exerciseId, 3, { isAssisted: e.isAssisted, bodyWeightKg })).map(e => `    - ${yamlString(e.exerciseName)}`).join('\n') || '    []'}
 ---
 
 # 🏋️ ${session.date} 운동 기록 — ${title}

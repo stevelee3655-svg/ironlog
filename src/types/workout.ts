@@ -53,6 +53,12 @@ export interface Exercise {
   repRangeHigh: number;
   /** 있으면 유산소 종목으로 다룬다 — 무게·횟수·게이지 대신 이 값들을 입력받는다. */
   cardioMetrics?: CardioMetric[];
+  /**
+   * 참이면 **눈금 숫자가 「도와주는 힘」**이다(어시스트 풀업 등).
+   * 숫자를 올릴수록 쉬워지므로, 실제로 몸이 감당한 무게는 `체중 − 눈금`이다.
+   * 이 표시가 없으면 앱은 숫자가 오를수록 발전이라고 읽어 **퇴보를 발전으로 기록한다.**
+   */
+  isAssisted?: boolean;
   notes?: string;
   createdAt: string;
 }
@@ -89,6 +95,8 @@ export interface SessionExercise {
   incrementKg?: number;
   repRangeLow?: number;
   repRangeHigh?: number;
+  /** 눈금이 「도와주는 힘」인 기구인지. Exercise에서 복사해 둔다(기록만 보고도 알아야 한다). */
+  isAssisted?: boolean;
   sets: WorkoutSet[];
   notes?: string;
   recommendationReason?: string;
@@ -155,6 +163,11 @@ export interface AppSettings {
   autoSyncOnFinish: boolean;
   theme: AppTheme;
   consecutiveTrainingWeeks?: number;
+  /**
+   * 체중(kg). 어시스트 기구에서 **실제로 든 무게 = 체중 − 보조 무게**를 구하는 데 쓴다.
+   * 자주 갱신하지 않아도 된다 — 값이 조금 낡아도 세션끼리의 진행 비교는 그대로 성립한다.
+   */
+  bodyWeightKg?: number;
 }
 
 export interface SyncResponse {

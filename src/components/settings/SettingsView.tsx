@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  Palette, 
-  Download, 
-  Upload 
+import {
+  Palette,
+  Download,
+  Upload,
+  Scale
 } from 'lucide-react';
 import {
   useWorkoutStore,
@@ -171,12 +172,69 @@ export const SettingsView: React.FC = () => {
         </h2>
       </div>
 
-      {/* 0. 4-Way Visual Theme Selector */}
-      <div 
+      {/*
+        내 몸 — 지금은 체중 하나뿐이다.
+        어시스트 풀업처럼 「도와주는 무게」를 쓰는 기구에서 실제로 든 무게는
+        `체중 − 보조 무게`다. 이 값이 없으면 그 종목의 계산이 통째로 어긋난다.
+      */}
+      <div
         className="p-5 rounded-2xl space-y-4 border shadow-sm"
-        style={{ 
-          backgroundColor: 'var(--card-bg)', 
-          borderColor: 'var(--card-border)' 
+        style={{
+          backgroundColor: 'var(--card-bg)',
+          borderColor: 'var(--card-border)'
+        }}
+      >
+        <div className="flex items-center space-x-2 border-b pb-2.5" style={{ borderColor: 'var(--card-border)' }}>
+          <Scale className="w-4 h-4 opacity-70" />
+          <h3 className="font-bold text-base">내 몸</h3>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="pr-3">
+            <p className="font-bold text-xs">체중</p>
+            <p className="text-[11px] opacity-60 leading-relaxed">
+              어시스트 풀업처럼 <b>몸을 들어 올려 주는 기구</b>에서, 실제로 내가 든 무게를
+              재는 데 씁니다. 그런 기구를 안 쓰면 아무 데도 영향이 없고, 자주 고치지 않아도
+              기록끼리 비교하는 데는 지장이 없습니다.
+            </p>
+          </div>
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.5"
+              min="1"
+              value={settings.bodyWeightKg ?? ''}
+              onChange={e => {
+                // 빈칸을 0으로 바꾸면 백스페이스 한 번에 체중이 0이 되고
+                // 어시스트 기구 계산이 통째로 망가진다. 빈칸은 빈칸으로 둔다.
+                const raw = e.target.value;
+                if (raw === '') {
+                  updateSettings({ bodyWeightKg: undefined });
+                  return;
+                }
+                const val = parseFloat(raw);
+                if (!isNaN(val) && val > 0) updateSettings({ bodyWeightKg: val });
+              }}
+              placeholder="62"
+              className="w-16 text-center text-sm font-bold font-mono py-1.5 rounded-lg border focus:outline-none"
+              style={{
+                backgroundColor: 'var(--input-bg)',
+                borderColor: 'var(--card-border)',
+                color: 'var(--canvas-text)'
+              }}
+            />
+            <span className="text-xs opacity-60">kg</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 0. 4-Way Visual Theme Selector */}
+      <div
+        className="p-5 rounded-2xl space-y-4 border shadow-sm"
+        style={{
+          backgroundColor: 'var(--card-bg)',
+          borderColor: 'var(--card-border)'
         }}
       >
         <div className="flex items-center space-x-2 border-b pb-2.5" style={{ borderColor: 'var(--card-border)' }}>

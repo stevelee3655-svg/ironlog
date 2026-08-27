@@ -404,6 +404,15 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                         {se.substitutedFrom} 대신
                       </div>
                     )}
+                    {/*
+                      어시스트 기구는 숫자가 클수록 쉬워진다. 화면에 이 말이 없으면
+                      운동하다가 「무게를 올리자」는 평소 습관대로 눌러서 정반대로 간다.
+                    */}
+                    {se.isAssisted && (
+                      <div className="text-[11px] font-bold mt-0.5" style={{ color: 'var(--row-now-ring)' }}>
+                        도와주는 기구 — 숫자가 클수록 쉬워집니다
+                      </div>
+                    )}
                     <div className="text-xs text-[#707072] dark:text-[#a1a1aa] font-medium mt-0.5">
                       {isCardio
                         ? `유산소 · ${cardioMetrics!.map(m => CARDIO_FIELDS[m].label).join(' · ')} 기록`
@@ -483,7 +492,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                   <div className="grid grid-cols-12 text-[10px] font-bold text-[#9e9ea0] tracking-wider uppercase px-2">
                     <div className="col-span-1 text-center">#</div>
                     <div className="col-span-3 text-left pl-1">이전</div>
-                    <div className="col-span-3 text-center">KG</div>
+                    <div className="col-span-3 text-center">{se.isAssisted ? '보조 KG' : 'KG'}</div>
                     <div className="col-span-2 text-center">회</div>
                     <div className="col-span-2 text-center">RIR</div>
                     <div className="col-span-1 text-center"></div>

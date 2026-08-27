@@ -181,7 +181,7 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       expect(rec.reason).toContain('과도한 피로');
     });
 
-    it('Rule 5 (큰 점프): 10kg dumbbell x 15/15/15, increment 2kg (20% > 15%) -> expand to 18 reps, target 16/16/16', () => {
+    it('큰 점프(20% > 15%): 막지 않고 증량을 추천하되 사유에 경고를 붙인다', () => {
       const dbEx: Exercise = {
         id: 'ex_db_raise',
         name: '덤벨 사레레',
@@ -218,11 +218,18 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
         }]
       }];
 
+      // 증량 폭이 커도 **막지 않는다.** 상단을 채웠으면 평소대로 증량을 추천하고,
+      // 한 번에 꽤 세진다는 사실은 사유에 한 줄로만 알린다.
+      // (수환 지시, 2026-08-27: "경고문으로 보여주되, 강제하진 말아.
+      //  현실에서 운동할 땐 무게의 범위가 생각보다 많이 위 아래로 변동하니까.")
       const rec = recommend(dbEx, history);
-      expect(rec.action).toBe('increase_reps');
-      expect(rec.sets[0].weightKg).toBe(10);
-      expect(rec.sets.map(s => s.reps)).toEqual([16, 16, 16]);
-      expect(rec.reason).toContain('18회로 확장');
+      expect(rec.action).toBe('increase_load');
+      expect(rec.sets[0].weightKg).toBe(12);
+      expect(rec.sets.map(s => s.reps)).toEqual([10, 10, 10]);
+      expect(rec.reason).toContain('20%');
+      expect(rec.reason).toContain('횟수를 더 쌓아도 됩니다');
+      // 목표 상한을 몰래 늘리지 않는다 — 그것도 결국 강제가 된다.
+      expect(rec.reason).not.toContain('18회');
     });
 
     it('Rule 6 (작은 점프): 40kg machine x 15/15/15, increment 5kg (12.5% <= 15%) -> increase_load, 45kg x 10', () => {

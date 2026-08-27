@@ -19,14 +19,21 @@ import {
   adjustRemaining,
   isHardSet,
   TIER_DEFAULTS,
-  DEFAULT_INCREMENT
+  DEFAULT_INCREMENT,
+  setBodyWeightKg
 } from '../utils/progression';
 import { syncWorkoutToGoogleDrive } from '../services/driveSync';
-import { buildGymExercises, RETIRED_EQUIPMENT_IDS, EQUIPMENT_REV, EQUIPMENT_INCREMENTS } from '../data/gymEquipment';
+import { buildGymExercises, RETIRED_EQUIPMENT_IDS, EQUIPMENT_REV, EQUIPMENT_INCREMENTS, ASSISTED_EQUIPMENT_IDS } from '../data/gymEquipment';
 import { buildGymRoutines } from '../data/gymRoutines';
 import { localDateKey } from '../utils/date';
 
 const STORAGE_KEY = 'ironlog_state_v1';
+
+/**
+ * 수환의 체중(2026-08-27 본인 확인). 어시스트 기구에서 **실제 부하 = 체중 − 보조 무게**를
+ * 구하는 데만 쓴다. 설정 화면에서 언제든 고칠 수 있다.
+ */
+const DEFAULT_BODY_WEIGHT = 62;
 
 const DEFAULT_STARTER_EXERCISES: Exercise[] = [
   {
@@ -161,10 +168,26 @@ function dropRetiredEquipment(stored: Exercise[], routines: Routine[]): Exercise
  * 이름·등급·부위는 사용자가 고쳤을 수 있으므로 건드리지 않는다.
  */
 function syncEquipmentIncrements(stored: Exercise[], storedRev: number): Exercise[] {
-  if (storedRev >= EQUIPMENT_REV) return stored;
+  const syncIncrements = storedRev < EQUIPMENT_REV;
   return stored.map(e => {
+    // 「눈금이 도와주는 힘」 표시는 **rev와 무관하게 늘 맞춘다.**
+    // 이건 사용자가 고를 수 있는 설정이 아니라 기구 자체의 성질이고, 빠져 있으면
+    // 그 종목의 계산이 통째로 거꾸로 돈다. 반면 증량 단위는 사용자가 손댔을 수 있어서
+    // 실측이 갱신됐을 때(rev가 올랐을 때)만 다시 맞춘다.
+    const assisted = ASSISTED_EQUIPMENT_IDS.has(e.id);
+    const needsAssist = assisted !== (e.isAssisted === true);
+
     const inc = EQUIPMENT_INCREMENTS[e.id];
-    return inc !== undefined && inc !== e.incrementKg ? { ...e, incrementKg: inc } : e;
+    const needsInc = syncIncrements && inc !== undefined && inc !== e.incrementKg;
+
+    if (!needsInc && !needsAssist) return e;
+    const next: Exercise = { ...e };
+    if (needsInc) next.incrementKg = inc;
+    if (needsAssist) {
+      if (assisted) next.isAssisted = true;
+      else delete next.isAssisted;
+    }
+    return next;
   });
 }
 
@@ -268,42 +291,51 @@ function buildAdjustmentNotice(args: {
   beforeWeight: number;
   afterWeight: number;
   incrementKg: number;
+  isAssisted?: boolean;
 }): { setId: string; text: string; type: 'increase' | 'decrease' | 'neutral' } {
-  const { setId, targetRir, actualRir, beforeWeight, afterWeight, incrementKg } = args;
+  const { setId, targetRir, actualRir, beforeWeight, afterWeight, incrementKg, isAssisted } = args;
   const diff = afterWeight - beforeWeight;
   const gap = actualRir - targetRir; // 양수면 목표보다 쉬웠다
 
-  if (diff > 0) {
+  // ⚠️ 어시스트 기구는 눈금이 올라가면 **쉬워진다.** 눈금 방향만 보고 문구를 고르면
+  // 보조를 늘려 주면서 "가볍다는 뜻이야"라고 말하는 정반대 안내가 나간다.
+  // 그래서 판단은 눈금이 아니라 **부하가 어느 쪽으로 갔는가**로 한다.
+  const loadDiff = isAssisted ? -diff : diff;
+  /** 화면에 보일 숫자. 어시스트는 눈금이 곧 「보조」다. */
+  const label = `${isAssisted ? '보조 ' : ''}${fmtKg(afterWeight)}kg (${diff > 0 ? '+' : ''}${fmtKg(diff)})`;
+
+  if (loadDiff > 0) {
     return {
       setId,
       type: 'increase',
-      text: `남은 세트 ${fmtKg(afterWeight)}kg (+${fmtKg(diff)}) · ${targetRir}개 남기는 게 목표였는데 ${fmtRir(actualRir)} 남았어 — 가볍다는 뜻이야.`
+      text: `남은 세트 ${label} · ${targetRir}개 남기는 게 목표였는데 ${fmtRir(actualRir)} 남았어 — 가볍다는 뜻이야.`
     };
   }
-  if (diff < 0) {
+  if (loadDiff < 0) {
     return {
       setId,
       type: 'decrease',
-      text: `남은 세트 ${fmtKg(afterWeight)}kg (${fmtKg(diff)}) · ${targetRir}개 남기는 게 목표였는데 ${fmtRir(actualRir)} 남았어 — 이대로면 남은 세트를 못 채워.`
+      text: `남은 세트 ${label} · ${targetRir}개 남기는 게 목표였는데 ${fmtRir(actualRir)} 남았어 — 이대로면 남은 세트를 못 채워.`
     };
   }
 
   // 무게가 안 바뀐 경우는 두 가지다. 둘을 뭉뚱그리면 사용자가 로직을 불신하게 된다.
+  const stayLabel = `${isAssisted ? '보조 ' : ''}${fmtKg(afterWeight)}kg`;
   if (Math.abs(gap) <= 1) {
     return {
       setId,
       type: 'neutral',
-      text: `목표(${targetRir}개 남기기)와 ${gap === 0 ? '정확히 같아' : '1개 차이야'} — 무게 선택이 적절했다는 뜻이라 ${fmtKg(afterWeight)}kg 그대로 간다.`
+      text: `목표(${targetRir}개 남기기)와 ${gap === 0 ? '정확히 같아' : '1개 차이야'} — ${isAssisted ? '보조' : '무게'} 선택이 적절했다는 뜻이라 ${stayLabel} 그대로 간다.`
     };
   }
   return {
     setId,
     type: 'neutral',
-    text: `목표보다 ${Math.abs(gap)}개 ${gap > 0 ? '더 남았지만' : '모자랐지만'} 이 기구의 증량 단위가 ${fmtKg(incrementKg)}kg이라 5% 조정으로는 한 칸도 못 움직여 — ${fmtKg(afterWeight)}kg 그대로 둔다.`
+    text: `목표보다 ${Math.abs(gap)}개 ${gap > 0 ? '더 남았지만' : '모자랐지만'} 이 기구의 조절 단위가 ${fmtKg(incrementKg)}kg이라 5% 조정으로는 한 칸도 못 움직여 — ${stayLabel} 그대로 둔다.`
   };
 }
 
-function enrichExerciseWithDefaults(ex: Partial<Exercise> & { repRange?: { min: number; max: number }; weightIncrementKg?: number }): Exercise {
+export function enrichExerciseWithDefaults(ex: Partial<Exercise> & { repRange?: { min: number; max: number }; weightIncrementKg?: number }): Exercise {
   const meta = classifyExercise(ex.name || '', ex.muscleGroup || '기타');
   const tier = ex.tier || meta.tier;
   const tierCfg = TIER_DEFAULTS[tier];
@@ -321,6 +353,10 @@ function enrichExerciseWithDefaults(ex: Partial<Exercise> & { repRange?: { min: 
     // 유산소 지표는 반드시 그대로 넘긴다. 여기서 빠지면 저장 후 다시 켰을 때
     // 런닝머신이 무게·횟수 종목으로 둔갑한다.
     ...(ex.cardioMetrics?.length ? { cardioMetrics: ex.cardioMetrics } : {}),
+    // 「도와주는 기구」 표시도 같은 이유로 반드시 넘긴다. 이 함수는 필드를 하나하나
+    // 다시 쌓아 만들기 때문에, 적지 않은 필드는 조용히 사라진다. 이게 빠지면
+    // 어시스트 풀업이 보통 기구로 둔갑해 **보조를 늘리는 쪽을 증량으로 추천한다.**
+    ...(ex.isAssisted ? { isAssisted: true } : {}),
     notes: ex.notes || '',
     createdAt: ex.createdAt || new Date().toISOString()
   };
@@ -353,7 +389,8 @@ function loadInitialState() {
         enableSound: true,
         enableVibration: true,
         autoSyncOnFinish: true,
-        theme: 'nike' as const
+        theme: 'nike' as const,
+        bodyWeightKg: DEFAULT_BODY_WEIGHT
       }
     };
   }
@@ -410,7 +447,8 @@ function loadInitialState() {
           enableSound: parsed.settings?.enableSound ?? true,
           enableVibration: parsed.settings?.enableVibration ?? true,
           autoSyncOnFinish: parsed.settings?.autoSyncOnFinish ?? true,
-          theme: parsed.settings?.theme || 'nike'
+          theme: parsed.settings?.theme || 'nike',
+          bodyWeightKg: parsed.settings?.bodyWeightKg ?? DEFAULT_BODY_WEIGHT
         }
       };
     }
@@ -432,7 +470,8 @@ function loadInitialState() {
       enableSound: true,
       enableVibration: true,
       autoSyncOnFinish: true,
-      theme: 'nike' as const
+      theme: 'nike' as const,
+      bodyWeightKg: DEFAULT_BODY_WEIGHT
     }
   };
 }
@@ -471,6 +510,7 @@ function buildSessionExercise(ex: Exercise, history: WorkoutSession[], isDeload:
     incrementKg: ex.incrementKg,
     repRangeLow: ex.repRangeLow,
     repRangeHigh: ex.repRangeHigh,
+    isAssisted: ex.isAssisted,
     sets,
     notes: ex.notes || '',
     recommendationReason: rec.reason,
@@ -586,6 +626,10 @@ export function normalizeBackup(data: any): string | null {
 export const BACKUP_STORAGE_KEY = STORAGE_KEY;
 
 const initial = loadInitialState();
+
+// 계산 쪽이 쓰는 체중을 저장된 설정과 맞춘다. 스토어를 만들기 전에 해야
+// 첫 화면의 추천·볼륨부터 올바른 체중으로 계산된다.
+setBodyWeightKg(initial.settings.bodyWeightKg);
 
 export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
   exercises: initial.exercises,
@@ -777,6 +821,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
           incrementKg: enriched.incrementKg,
           repRangeLow: enriched.repRangeLow,
           repRangeHigh: enriched.repRangeHigh,
+          isAssisted: enriched.isAssisted,
           sets,
           notes: enriched.notes || '',
           recommendationReason: rec.reason,
@@ -981,7 +1026,8 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
         loadType: se.loadType,
         incrementKg: se.incrementKg,
         repRangeLow: se.repRangeLow,
-        repRangeHigh: se.repRangeHigh
+        repRangeHigh: se.repRangeHigh,
+        isAssisted: se.isAssisted
       });
 
       let updatedSetCompleted: WorkoutSet | null = null;
@@ -1043,7 +1089,8 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
               actualRir: updates.actualRir,
               beforeWeight,
               afterWeight,
-              incrementKg: exObj.incrementKg
+              incrementKg: exObj.incrementKg,
+              isAssisted: exObj.isAssisted
             })
           };
         }
@@ -1087,7 +1134,8 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
         loadType: se.loadType,
         incrementKg: se.incrementKg,
         repRangeLow: se.repRangeLow,
-        repRangeHigh: se.repRangeHigh
+        repRangeHigh: se.repRangeHigh,
+        isAssisted: se.isAssisted
       });
 
       let justCompletedSet: WorkoutSet | null = null;
@@ -1329,6 +1377,9 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
   updateSettings: (updates) => {
     set(state => {
       const updated = { ...state.settings, ...updates };
+      // 계산 쪽(progression.ts)이 쓰는 체중을 같이 맞춰 준다.
+      // 이걸 빼면 설정에서 체중을 고쳐도 어시스트 종목 계산은 옛 값으로 굴러간다.
+      setBodyWeightKg(updated.bodyWeightKg);
       saveStateToStorage({ ...state, settings: updated });
       return { settings: updated };
     });

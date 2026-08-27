@@ -112,6 +112,63 @@ export function classifyExercise(name: string, muscleGroup: MuscleGroup): {
 // ==========================================
 
 /**
+ * 체중을 아직 입력하지 않았을 때 쓰는 값.
+ * 어시스트 기구 계산에만 쓰이고, 그 종목을 안 하면 아무 데도 영향이 없다.
+ */
+export const DEFAULT_BODY_WEIGHT_KG = 70;
+
+/**
+ * 지금 쓰는 체중.
+ *
+ * 화면마다 인자로 넘기지 않고 여기 한 곳에 둔다. 체중은 종목이나 세션이 아니라
+ * **앱 전체에 하나뿐인 값**이라, 넘기는 자리를 하나라도 빠뜨리면 운동 화면과
+ * 기록 화면이 서로 다른 체중으로 계산해 **같은 세션의 볼륨이 화면마다 달라진다.**
+ * 스토어가 앱을 켤 때와 설정을 고칠 때 setBodyWeightKg()로 채워 넣는다.
+ */
+let configuredBodyWeightKg = DEFAULT_BODY_WEIGHT_KG;
+
+export function setBodyWeightKg(kg: number | undefined): void {
+  configuredBodyWeightKg = typeof kg === 'number' && kg > 0 ? kg : DEFAULT_BODY_WEIGHT_KG;
+}
+
+export function getBodyWeightKg(): number {
+  return configuredBodyWeightKg;
+}
+
+/**
+ * 그 세트에서 **실제로 몸이 감당한 무게**.
+ *
+ * 보통 기구는 눈금이 그대로 부하다. 그런데 어시스트 풀업은 눈금이 「도와주는 힘」이라
+ * **숫자를 올릴수록 쉬워진다.** 그래서 실제 부하는 `체중 − 눈금`이다.
+ * 이 환산을 안 하면 앱은 보조를 더 받은 날을 「무게를 더 든 날」로 읽어
+ * **퇴보를 발전으로 기록한다.**
+ *
+ * 보조가 체중을 넘으면 매달려 있기만 해도 되므로 부하는 0으로 본다.
+ */
+export function effectiveLoadKg(
+  machineKg: number,
+  isAssisted?: boolean,
+  bodyWeightKg: number = getBodyWeightKg()
+): number {
+  if (!isAssisted) return machineKg;
+  return Math.max(0, Math.round((bodyWeightKg - machineKg) * 10) / 10);
+}
+
+/**
+ * 실제 부하를 다시 **기구 눈금 숫자**로 되돌린다(어시스트 기구 전용).
+ * 부하를 올리라는 뜻은 보조를 줄이라는 뜻이다.
+ * 눈금은 0(보조 없음 = 진짜 턱걸이) 아래로는 못 내려간다.
+ */
+export function assistFromLoadKg(
+  loadKg: number,
+  bodyWeightKg: number,
+  increment: number
+): number {
+  const raw = roundToIncrement(bodyWeightKg - loadKg, increment);
+  return Math.max(0, raw);
+}
+
+/**
  * Epley 공식 기반 추정 1RM (e1RM) 계산
  * 무게 × (1 + 유효횟수/30). 유효횟수 = reps + RIR, RIR = 10 - rpe.
  * rpe 없으면 RIR 2로 가정. 유효횟수는 12로 상한.
@@ -144,7 +201,12 @@ export function stepAtLeastOne(
   current: number,
   scaled: number,
   increment: number,
-  dir: 'up' | 'down'
+  dir: 'up' | 'down',
+  /**
+   * 내려갈 수 있는 하한. 보통 기구는 한 칸(increment)이 바닥이지만,
+   * 어시스트 기구의 눈금 0은 「보조 없음」이라는 정상적인 값이라 0까지 내려간다.
+   */
+  floor: number = increment
 ): number {
   const rounded = roundToIncrement(scaled, increment);
 
@@ -158,8 +220,8 @@ export function stepAtLeastOne(
 
   // 내려갈 때도 마찬가지 — 반올림이 위로 튀면 안 된다.
   const down = rounded < current ? rounded : roundToIncrement(current - increment, increment);
-  // 0kg이나 음수로는 내려가지 않는다. 한 칸도 못 내려갈 만큼 가벼우면 그 자리에 둔다.
-  return down >= increment ? down : current;
+  // 하한 밑으로는 내려가지 않는다. 한 칸도 못 내려갈 만큼 가벼우면 그 자리에 둔다.
+  return down >= floor ? down : current;
 }
 
 export function roundToIncrement(kg: number, increment: number): number {
@@ -207,8 +269,10 @@ export interface LastPerformance {
  */
 export function lastPerformance(
   history: WorkoutSession[],
-  exerciseId: string
+  exerciseId: string,
+  opts: { isAssisted?: boolean; bodyWeightKg?: number } = {}
 ): LastPerformance | null {
+  const bw = opts.bodyWeightKg ?? getBodyWeightKg();
   for (const session of history) {
     const ex = session.exercises.find(e => e.exerciseId === exerciseId);
     if (!ex) continue;
@@ -246,7 +310,9 @@ export function lastPerformance(
       // 백업으로 들여온 옛 기록에는 rpe가 없을 수 있다. 그때 한계 세트가
       // 실제보다 낮게 평가되지 않도록 RIR에서 되돌린다.
       const sRpe = s.rpe ?? (s.actualRir !== undefined ? 10 - s.actualRir : undefined);
-      const e1rm = estimate1RM(s.weightKg, s.reps, sRpe);
+      // 어시스트 기구는 눈금이 아니라 **실제 부하**로 재야 한다.
+      const load = effectiveLoadKg(s.weightKg, opts.isAssisted ?? ex.isAssisted, bw);
+      const e1rm = estimate1RM(load, s.reps, sRpe);
       if (e1rm > highest1RM) highest1RM = e1rm;
     });
 
@@ -277,8 +343,10 @@ export function lastPerformance(
 export function isStalled(
   history: WorkoutSession[],
   exerciseId: string,
-  windowSize = 3
+  windowSize = 3,
+  opts: { isAssisted?: boolean; bodyWeightKg?: number } = {}
 ): boolean {
+  const bw = opts.bodyWeightKg ?? getBodyWeightKg();
   const matchingSessions: WorkoutSession[] = [];
   for (const s of history) {
     const ex = s.exercises.find(e => e.exerciseId === exerciseId);
@@ -291,25 +359,23 @@ export function isStalled(
     return false;
   }
 
-  // 최근 window개 세션의 최고 e1RM
-  let recentMax = 0;
-  for (let i = 0; i < windowSize; i++) {
-    const ex = matchingSessions[i].exercises.find(e => e.exerciseId === exerciseId);
-    ex?.sets.filter(st => st.isCompleted).forEach(st => {
-      const e1rm = estimate1RM(st.weightKg, st.reps, st.rpe);
-      if (e1rm > recentMax) recentMax = e1rm;
-    });
-  }
+  // 어시스트 기구는 눈금이 아니라 **실제 부하**(체중 − 보조)로 재야 한다.
+  // 안 그러면 보조를 더 받은 날이 「더 무겁게 든 날」로 잡혀 정체가 발전으로 보인다.
+  const bestE1rm = (from: number, to: number) => {
+    let best = 0;
+    for (let i = from; i < to; i++) {
+      const ex = matchingSessions[i].exercises.find(e => e.exerciseId === exerciseId);
+      const assisted = opts.isAssisted ?? ex?.isAssisted;
+      ex?.sets.filter(st => st.isCompleted).forEach(st => {
+        const e1rm = estimate1RM(effectiveLoadKg(st.weightKg, assisted, bw), st.reps, st.rpe);
+        if (e1rm > best) best = e1rm;
+      });
+    }
+    return best;
+  };
 
-  // 그 이전 세션들의 최고 e1RM
-  let previousMax = 0;
-  for (let i = windowSize; i < matchingSessions.length; i++) {
-    const ex = matchingSessions[i].exercises.find(e => e.exerciseId === exerciseId);
-    ex?.sets.filter(st => st.isCompleted).forEach(st => {
-      const e1rm = estimate1RM(st.weightKg, st.reps, st.rpe);
-      if (e1rm > previousMax) previousMax = e1rm;
-    });
-  }
+  const recentMax = bestE1rm(0, windowSize);
+  const previousMax = bestE1rm(windowSize, matchingSessions.length);
 
   if (previousMax <= 0) {
     // 맨몸 종목(무게 0)은 e1RM이 항상 0이라 여기서 언제나 false로 빠져나갔다.
@@ -376,7 +442,7 @@ export interface Recommendation {
 export function recommend(
   exercise: Exercise,
   history: WorkoutSession[],
-  opts: { setCount?: number; deloadWeek?: boolean } = {}
+  opts: { setCount?: number; deloadWeek?: boolean; bodyWeightKg?: number } = {}
 ): Recommendation {
   const tier = exercise.tier || 'secondary';
   const tierCfg = TIER_DEFAULTS[tier];
@@ -385,8 +451,26 @@ export function recommend(
   const increment = exercise.incrementKg ?? DEFAULT_INCREMENT[exercise.loadType] ?? 2.5;
   const restSeconds = exercise.defaultRestSeconds || tierCfg.restSeconds;
 
-  const perf = lastPerformance(history, exercise.id);
-  const stalled = isStalled(history, exercise.id);
+  // 어시스트 기구는 눈금과 실제 부하의 방향이 반대다. 그래서 판단은 전부 **부하**로 하고,
+  // 화면에 내보낼 때만 눈금 숫자로 되돌린다.
+  const assisted = exercise.isAssisted === true;
+  const bw = opts.bodyWeightKg ?? getBodyWeightKg();
+  /** 눈금 숫자 → 실제 부하 */
+  const loadOf = (machine: number) => effectiveLoadKg(machine, assisted, bw);
+  /** 실제 부하 → 눈금 숫자 */
+  const dialFor = (load: number) =>
+    assisted ? assistFromLoadKg(load, bw, increment) : roundToIncrement(load, increment);
+  /** 무게 변화를 사람 말로. 어시스트는 「보조」로 말해야 뜻이 통한다. */
+  const moveText = (from: number, to: number) => {
+    if (!assisted) return `${from}→${to}kg`;
+    const diff = Math.round((from - to) * 100) / 100;
+    if (diff > 0) return `보조 -${diff}kg(${from}→${to}kg, 그만큼 더 힘들어집니다)`;
+    if (diff < 0) return `보조 +${-diff}kg(${from}→${to}kg, 그만큼 더 쉬워집니다)`;
+    return `보조 ${to}kg 유지`;
+  };
+
+  const perf = lastPerformance(history, exercise.id, { isAssisted: assisted, bodyWeightKg: bw });
+  const stalled = isStalled(history, exercise.id, 3, { isAssisted: assisted, bodyWeightKg: bw });
 
   // [1] 기록이 없다 (first_time)
   if (!perf) {
@@ -397,6 +481,9 @@ export function recommend(
     else if (exercise.loadType === 'dumbbell_pair') starterWeight = 10;
     else if (exercise.loadType === 'dumbbell_single') starterWeight = 8;
     else if (exercise.loadType === 'bodyweight') starterWeight = 0;
+    // 어시스트 기구는 눈금이 「도와주는 힘」이라 20kg에서 시작하면 거의 맨몸 턱걸이가 된다.
+    // 체중의 절반쯤 보조를 받는 자리에서 시작한다.
+    if (assisted) starterWeight = roundToIncrement(bw * 0.5, increment);
 
     const sets: SetTarget[] = Array.from({ length: setCount }, (_, i) => ({
       setNumber: i + 1,
@@ -410,7 +497,9 @@ export function recommend(
       action: 'first_time',
       sets,
       restSeconds,
-      reason: `폼이 확실한 가벼운 무게로 하단 횟수(${repLow}회)부터 시작합니다.`,
+      reason: assisted
+        ? `보조 ${starterWeight}kg(체중의 절반쯤)에서 하단 횟수(${repLow}회)부터 시작합니다. 이 기구는 숫자가 클수록 쉬워집니다.`
+        : `폼이 확실한 가벼운 무게로 하단 횟수(${repLow}회)부터 시작합니다.`,
       stalled: false,
       basis: {}
     };
@@ -431,7 +520,7 @@ export function recommend(
 
   // [2] 디로드 주간 (deload)
   if (opts.deloadWeek) {
-    const deloadWeight = roundToIncrement(Math.max(increment, workingWeight * 0.9), increment);
+    const deloadWeight = dialFor(Math.max(increment, loadOf(workingWeight) * 0.9));
     const deloadSetsCount = Math.max(2, totalSets - 1);
     const deloadRpeTargets = setRpeTargets(tier, deloadSetsCount).map(r => Math.max(4, r - 2));
 
@@ -447,7 +536,9 @@ export function recommend(
       action: 'deload',
       sets,
       restSeconds,
-      reason: `디로드 주간 — 무게 -10%(${workingWeight}→${deloadWeight}kg), 세트수 -1, RPE -2로 피로를 회복합니다.`,
+      reason: assisted
+        ? `디로드 주간 — 부하 -10%(${moveText(workingWeight, deloadWeight)}), 세트수 -1, RPE -2로 피로를 회복합니다.`
+        : `디로드 주간 — 무게 -10%(${workingWeight}→${deloadWeight}kg), 세트수 -1, RPE -2로 피로를 회복합니다.`,
       stalled,
       basis
     };
@@ -459,7 +550,7 @@ export function recommend(
                          repsBySet.some(r => r < repLow - 3);
 
   if (isOverFatigued) {
-    const reducedWeight = roundToIncrement(Math.max(increment, workingWeight * 0.9), increment);
+    const reducedWeight = dialFor(Math.max(increment, loadOf(workingWeight) * 0.9));
     const sets: SetTarget[] = Array.from({ length: totalSets }, (_, i) => ({
       setNumber: i + 1,
       weightKg: reducedWeight,
@@ -472,7 +563,9 @@ export function recommend(
       action: 'back_off',
       sets,
       restSeconds,
-      reason: `지난 세션 과도한 피로 감지 → 무게 -10% 감량(${workingWeight}→${reducedWeight}kg) 및 하단(${repLow}회)으로 재정비합니다.`,
+      reason: assisted
+        ? `지난 세션 과도한 피로 감지 → 부하 -10%(${moveText(workingWeight, reducedWeight)}) 및 하단(${repLow}회)으로 재정비합니다.`
+        : `지난 세션 과도한 피로 감지 → 무게 -10% 감량(${workingWeight}→${reducedWeight}kg) 및 하단(${repLow}회)으로 재정비합니다.`,
       stalled,
       basis
     };
@@ -493,43 +586,34 @@ export function recommend(
       action: 'hold',
       sets,
       restSeconds,
-      reason: `전 세트 하단 횟수(${repLow}회) 채우기가 우선입니다 → ${workingWeight}kg 유지.`,
+      reason: assisted
+        ? `전 세트 하단 횟수(${repLow}회) 채우기가 우선입니다 → 보조 ${workingWeight}kg 유지.`
+        : `전 세트 하단 횟수(${repLow}회) 채우기가 우선입니다 → ${workingWeight}kg 유지.`,
       stalled,
       basis
     };
   }
 
-  // [5] 증량 폭이 현재 무게의 15%를 초과 (큰 점프)
-  const jumpRatio = workingWeight > 0 ? (increment / workingWeight) : 0;
+  // [5] 증량 폭이 지금 부하의 15%를 넘는가 — **알려만 주고 막지는 않는다**
+  //
+  // 예전에는 이 조건에 걸리면 증량 추천을 아예 내지 않고 「횟수부터 더 쌓아라」로
+  // 빠져나갔다. 수환이 그걸 그만두라고 했다(2026-08-27):
+  //   "증량 폭이 부하의 15%를 넘음 같은건 경고문으로 보여주되, 강제하진 말아.
+  //    현실에서 운동할 땐 무게의 범위가 생각보다 많이 위 아래로 변동하니까."
+  // 그래서 목표 횟수 상한을 몰래 늘리지도 않고(그것도 결국 강제다), 추천은 평소대로
+  // 내되 사유 뒤에 한 줄 경고만 붙인다. 올릴지 말지는 그날 몸이 정한다.
+  //
+  // 비율은 **실제 부하** 기준이어야 한다. 어시스트에서 눈금 40kg은 부하 22kg이라
+  // 눈금으로 재면 증량 폭이 실제보다 작게 보인다.
+  const currentLoad = loadOf(workingWeight);
+  const jumpRatio = currentLoad > 0 ? (increment / currentLoad) : 0;
   const isLargeJump = jumpRatio > 0.15;
-  const effectiveRepHigh = isLargeJump ? repHigh + 3 : repHigh;
+  const effectiveRepHigh = repHigh;
 
-  if (isLargeJump) {
-    const allHitStandardMax = repsBySet.every(r => r >= repHigh);
-    const allHitExpandedMax = repsBySet.every(r => r >= effectiveRepHigh);
-
-    if (!allHitExpandedMax) {
-      const nextReps = repsBySet.map(r => Math.min(effectiveRepHigh, r + 1));
-      while (nextReps.length < totalSets) nextReps.push(allHitStandardMax ? repHigh + 1 : repLow);
-
-      const sets: SetTarget[] = Array.from({ length: totalSets }, (_, i) => ({
-        setNumber: i + 1,
-        weightKg: workingWeight,
-        reps: nextReps[i] || repLow,
-        targetRpe: rpeTargets[i],
-        targetRir: 10 - rpeTargets[i]
-      }));
-
-      return {
-        action: 'increase_reps',
-        sets,
-        restSeconds,
-        reason: `증량 폭(${Math.round(jumpRatio * 100)}%)이 커서 상한을 ${effectiveRepHigh}회로 확장하여 횟수 과부하를 진행합니다.`,
-        stalled,
-        basis
-      };
-    }
-  }
+  /** 큰 점프일 때 사유 뒤에 붙일 한 줄. 아니면 빈 문자열. */
+  const jumpNote = isLargeJump
+    ? ` (참고: 한 칸 ${increment}kg이 지금 ${assisted ? '부하' : '무게'}의 ${Math.round(jumpRatio * 100)}%라 한 번에 꽤 세집니다 — 버거우면 그대로 두고 횟수를 더 쌓아도 됩니다.)`
+    : '';
 
   // [6] 증량 조건 충족 (모든 세트 상단 도달 OR 마지막 RPE가 목표보다 2 이상 낮았음/쉬웠음)
   const allReachedMax = repsBySet.length > 0 && repsBySet.every(r => r >= effectiveRepHigh);
@@ -556,7 +640,7 @@ export function recommend(
       };
     }
 
-    const nextWeight = roundToIncrement(workingWeight + increment, increment);
+    const nextWeight = dialFor(currentLoad + increment);
     const sets: SetTarget[] = Array.from({ length: totalSets }, (_, i) => ({
       setNumber: i + 1,
       weightKg: nextWeight,
@@ -565,9 +649,34 @@ export function recommend(
       targetRir: 10 - rpeTargets[i]
     }));
 
-    const reason = allReachedMax
-      ? `지난주 전 세트 ${effectiveRepHigh}회 완료 → +${increment}kg 증량(${workingWeight}→${nextWeight}kg) 및 ${repLow}회 리셋`
-      : `지난주 마지막 세트 여유(RPE ${lastRpe}) 감지 → 조기 +${increment}kg 증량(${workingWeight}→${nextWeight}kg)`;
+    // 어시스트 기구에서 눈금이 이미 0이면 보조를 더 줄일 수 없다 — 진짜 턱걸이다.
+    // 여기서 "증량"이라고 말하면 거짓말이 되므로 다음 단계를 따로 안내한다.
+    if (assisted && nextWeight === workingWeight) {
+      const sets: SetTarget[] = Array.from({ length: totalSets }, (_, i) => ({
+        setNumber: i + 1,
+        weightKg: workingWeight,
+        reps: effectiveRepHigh,
+        targetRpe: rpeTargets[i],
+        targetRir: 10 - rpeTargets[i]
+      }));
+      return {
+        action: 'add_external_load',
+        sets,
+        restSeconds,
+        reason: `보조 없이(0kg) 상한까지 해냈습니다 — 이제 이 기구로 더 어렵게 만들 수 없습니다. 맨몸 턱걸이로 넘어가거나 중량을 얹을 때입니다.`,
+        stalled,
+        basis
+      };
+    }
+
+    // 일반 기구는 「증량」이 그대로 통하지만, 어시스트 기구에서 "증량"이라고 하면
+    // 보조를 늘리라는 말로 읽힌다. 그래서 그쪽만 「보조를 줄인다」로 말한다.
+    const gainText = assisted
+      ? `보조 -${increment}kg(${moveText(workingWeight, nextWeight)})`
+      : `+${increment}kg 증량(${workingWeight}→${nextWeight}kg)`;
+    const reason = (allReachedMax
+      ? `지난주 전 세트 ${effectiveRepHigh}회 완료 → ${gainText} 및 ${repLow}회 리셋`
+      : `지난주 마지막 세트 여유(RPE ${lastRpe}) 감지 → 조기 ${gainText}`) + jumpNote;
 
     return {
       action: 'increase_load',
@@ -595,7 +704,9 @@ export function recommend(
     action: 'increase_reps',
     sets,
     restSeconds,
-    reason: `이중 진행: ${workingWeight}kg 유지, 세트당 +1회 추가 도전 (목표: ${effectiveRepHigh}회)`,
+    reason: (assisted
+      ? `이중 진행: 보조 ${workingWeight}kg 유지, 세트당 +1회 추가 도전 (목표: ${effectiveRepHigh}회)`
+      : `이중 진행: ${workingWeight}kg 유지, 세트당 +1회 추가 도전 (목표: ${effectiveRepHigh}회)`) + jumpNote,
     stalled,
     basis
   };
@@ -615,7 +726,8 @@ export function adjustRemaining(
   exercise: Exercise,
   completedSet: WorkoutSet,
   targetRpe: number,
-  remainingSets: WorkoutSet[]
+  remainingSets: WorkoutSet[],
+  bodyWeightKg: number = getBodyWeightKg()
 ): WorkoutSet[] {
   const actualRpe = completedSet.rpe ?? (completedSet.actualRir !== undefined ? 10 - completedSet.actualRir : undefined);
   if (actualRpe === undefined || remainingSets.length === 0) {
@@ -625,25 +737,57 @@ export function adjustRemaining(
   const diff = actualRpe - targetRpe; // 양수: 더 힘듦, 음수: 더 쉬움
   const increment = exercise.incrementKg ?? DEFAULT_INCREMENT[exercise.loadType] ?? 2.5;
 
+  // ⚠️ 어시스트 기구는 눈금이 「도와주는 힘」이라 **방향이 반대다.**
+  // 힘들었다고 하면 여기서 눈금을 깎았는데, 그러면 보조가 줄어 오히려 더 힘들어졌다.
+  // 그래서 부하를 몇 퍼센트 움직일지 정한 뒤, 그 부하에 해당하는 눈금으로 되돌린다.
+  const assisted = exercise.isAssisted === true;
+  const currentWeight = completedSet.weightKg;
+
+  /**
+   * 부하를 ratio배로 만들었을 때의 눈금 숫자와, 눈금이 움직여야 할 방향.
+   * 보통 기구: 눈금 × ratio, 방향은 ratio 그대로.
+   * 어시스트: 부하 = 체중 − 눈금이므로 새 눈금 = 체중 − ratio×(체중 − 눈금). 방향이 뒤집힌다.
+   */
+  const scaleLoad = (ratio: number) => {
+    if (!assisted) {
+      return { target: currentWeight * ratio, dir: (ratio > 1 ? 'up' : 'down') as 'up' | 'down', floor: increment };
+    }
+    const target = bodyWeightKg - ratio * (bodyWeightKg - currentWeight);
+    // 부하를 올리라는 것은 보조를 줄이라는 것 — 눈금은 내려간다. 눈금 0(보조 없음)까지 허용한다.
+    return { target, dir: (ratio > 1 ? 'down' : 'up') as 'up' | 'down', floor: 0 };
+  };
+
+  const phrase = (from: number, to: number) => {
+    if (!assisted) return `${from}→${to}kg`;
+    const d = Math.round((from - to) * 100) / 100;
+    if (d > 0) return `보조 -${d}kg(${from}→${to}kg)`;
+    if (d < 0) return `보조 +${-d}kg(${from}→${to}kg)`;
+    return `보조 ${to}kg 그대로`;
+  };
+
   if (diff >= 2) {
-    // 2 이상 힘들었음 -> -10%
-    const currentWeight = completedSet.weightKg;
-    const adjusted = stepAtLeastOne(currentWeight, currentWeight * 0.9, increment, 'down');
+    // 2 이상 힘들었음 -> 부하 -10%
+    const { target, dir, floor } = scaleLoad(0.9);
+    const adjusted = stepAtLeastOne(currentWeight, target, increment, dir, floor);
     return remainingSets.map(s => ({
       ...s,
       weightKg: adjusted,
-      recommendationReason: `피로 누적 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 -10%(${currentWeight}→${adjusted}kg) 교정`
+      recommendationReason: assisted
+        ? `피로 누적 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 부하 -10%(${phrase(currentWeight, adjusted)}) 교정`
+        : `피로 누적 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 -10%(${currentWeight}→${adjusted}kg) 교정`
     }));
   }
 
   if (diff <= -2) {
-    // 2 이상 쉬웠음 -> +5% 또는 +1 증량단위
-    const currentWeight = completedSet.weightKg;
-    const adjusted = stepAtLeastOne(currentWeight, currentWeight * 1.05, increment, 'up');
+    // 2 이상 쉬웠음 -> 부하 +5% (또는 한 칸)
+    const { target, dir, floor } = scaleLoad(1.05);
+    const adjusted = stepAtLeastOne(currentWeight, target, increment, dir, floor);
     return remainingSets.map(s => ({
       ...s,
       weightKg: adjusted,
-      recommendationReason: `높은 여유도 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 +5%(${currentWeight}→${adjusted}kg) 교정`
+      recommendationReason: assisted
+        ? `높은 여유도 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 부하 +5%(${phrase(currentWeight, adjusted)}) 교정`
+        : `높은 여유도 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 +5%(${currentWeight}→${adjusted}kg) 교정`
     }));
   }
 

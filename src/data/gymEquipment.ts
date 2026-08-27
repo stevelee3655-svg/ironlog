@@ -167,10 +167,9 @@ export const GYM_EQUIPMENT: Seed[] = [
   ['gym_bb_beltsquat',     '[부티 빌더] 벨트 스쿼트',           '하체', 'primary',   'machine', PLATE],
   ['gym_bb_beltrdl',       '[부티 빌더] 벨트 루마니안 데드리프트','등',  'secondary', 'machine', PLATE],
 
-  // ⚠️ 어시스트 풀업은 **무게의 뜻이 반대다** — 무게를 올릴수록 도와주는 힘이 커져서
-  //    더 쉬워진다. 이 앱의 진행 로직은 「무게가 오르면 발전」으로 읽으므로, 이 종목을
-  //    루틴에 넣고 무게를 올리면 **퇴보를 발전으로 기록한다.** 그래서 기구 목록에는
-  //    올리되 어느 루틴에도 넣지 않았다. 쓰려면 처리 방식을 먼저 정해야 한다.
+  // 어시스트 풀업은 **눈금의 뜻이 반대다** — 숫자를 올릴수록 도와주는 힘이 커져 더 쉬워진다.
+  // 2026-08-27에 처리 방식을 정했다: ASSISTED_EQUIPMENT_IDS에 넣어 두면 앱이
+  // 「실제 부하 = 체중 − 눈금」으로 환산해서 계산한다(progression.ts effectiveLoadKg).
   ['gym_nt_assistpullup',  '[뉴텍] 어시스트 풀업',              '등',   'secondary', 'machine', PIN],
 
   // ── 10. 유산소 ───────────────────────────────────────────
@@ -187,6 +186,21 @@ export const GYM_EQUIPMENT: Seed[] = [
   ['gym_cardio_mymountain','마이마운틴',          '유산소', 'isolation', 'bodyweight', 0, ['speed', 'incline', 'duration']],
   ['gym_cardio_stepmill',  '천국의 계단 (스텝밀)', '유산소', 'isolation', 'bodyweight', 0, ['level', 'duration']]
 ];
+
+/**
+ * 눈금 숫자가 **「도와주는 힘」**인 기구.
+ *
+ * 보통 기구는 숫자가 클수록 어렵지만 이 기구들은 **클수록 쉬워진다.**
+ * 그대로 두면 앱이 보조를 더 받은 날을 「더 무겁게 든 날」로 읽어
+ * **퇴보를 발전으로 기록한다.** 그래서 여기 적힌 종목은 계산 전에
+ * `체중 − 눈금`으로 환산한다(체중은 설정 화면에서 입력).
+ *
+ * 튜플에 자리를 하나 더 만들지 않고 목록으로 둔 이유: 이런 기구는 드물어서
+ * 종목 86개 전부에 빈칸을 붙이는 것보다 여기 이름을 적는 편이 읽기 쉽다.
+ */
+export const ASSISTED_EQUIPMENT_IDS = new Set<string>([
+  'gym_nt_assistpullup'
+]);
 
 /**
  * 더 이상 쓰지 않는 **종목 항목**의 id.
@@ -213,8 +227,9 @@ export const RETIRED_EQUIPMENT_IDS = [
  *
  * rev 2 — 2026-08-26: 현장 사진으로 프라임 PULL & TURN 5lb(2.27kg) 확인.
  * rev 3 — 2026-08-26: 아틀란티스 스탠딩 레터럴 레이즈가 핀 스택이고 보조 추 2.3kg 확인.
+ * rev 4 — 2026-08-27: 어시스트 풀업에 「눈금이 반대」 표시를 달았다.
  */
-export const EQUIPMENT_REV = 3;
+export const EQUIPMENT_REV = 4;
 
 /** id → 현재 기준 증량 단위. 마이그레이션이 쓴다. */
 export const EQUIPMENT_INCREMENTS: Record<string, number> =
@@ -236,6 +251,7 @@ export function buildGymExercises(createdAt: string): Exercise[] {
       repRangeHigh: isCardio ? 1 : cfg.repHigh,
       defaultRestSeconds: isCardio ? 0 : cfg.restSeconds,
       ...(cardioMetrics ? { cardioMetrics } : {}),
+      ...(ASSISTED_EQUIPMENT_IDS.has(id) ? { isAssisted: true } : {}),
       notes: '',
       createdAt
     };
