@@ -35,3 +35,34 @@ describe('stepAtLeastOne', () => {
     expect(stepAtLeastOne(5, 4.5, 5, 'down')).toBe(5);
   });
 });
+
+/**
+ * 반올림이 **반대 방향으로 튀는** 경우.
+ * 증량 단위 9kg 기구에서 20kg일 때 20*1.05=21을 반올림하면 18이 된다 —
+ * 쉬웠다고 눌렀는데 무게가 깎이는 정반대 결과다.
+ */
+describe('stepAtLeastOne — 반올림이 반대로 튀는 경우', () => {
+  it('9kg 단위에서 증량이 감량으로 뒤집히지 않는다', () => {
+    expect(roundToIncrement(20 * 1.05, 9)).toBe(18); // 문제의 원인
+    const up = stepAtLeastOne(20, 20 * 1.05, 9, 'up');
+    expect(up).toBeGreaterThan(20);
+  });
+
+  it('9kg 단위에서 감량은 실제로 내려간다', () => {
+    const down = stepAtLeastOne(20, 20 * 0.9, 9, 'down');
+    expect(down).toBeLessThan(20);
+    expect(down).toBeGreaterThan(0);
+  });
+
+  it('어떤 증량 단위에서도 방향이 뒤집히지 않는다', () => {
+    for (const inc of [0.5, 2.27, 2.3, 2.5, 5, 9]) {
+      for (const w of [2.5, 5, 10, 20, 40, 80]) {
+        const up = stepAtLeastOne(w, w * 1.05, inc, 'up');
+        expect(up, `증량 ${w}kg / 단위 ${inc}kg`).toBeGreaterThan(w);
+        const down = stepAtLeastOne(w, w * 0.9, inc, 'down');
+        expect(down, `감량 ${w}kg / 단위 ${inc}kg`).toBeLessThanOrEqual(w);
+        expect(down, `감량 하한 ${w}kg / 단위 ${inc}kg`).toBeGreaterThan(0);
+      }
+    }
+  });
+});

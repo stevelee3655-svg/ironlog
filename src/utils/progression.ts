@@ -147,12 +147,19 @@ export function stepAtLeastOne(
   dir: 'up' | 'down'
 ): number {
   const rounded = roundToIncrement(scaled, increment);
-  if (rounded !== current) {
-    return dir === 'down' ? Math.max(increment, rounded) : rounded;
+
+  if (dir === 'up') {
+    // 반올림 결과가 지금보다 크지 않으면(제자리이거나 오히려 작으면) 한 칸 올린다.
+    // 예: 20kg · 증량단위 9kg → 20×1.05=21 → 반올림하면 **18**. 쉬웠다고 했는데
+    // 무게가 깎이는 정반대 결과가 나온다. 그래서 크기 비교로 막는다.
+    if (rounded > current) return rounded;
+    return roundToIncrement(current + increment, increment);
   }
-  if (dir === 'up') return roundToIncrement(current + increment, increment);
-  const stepped = roundToIncrement(current - increment, increment);
-  return stepped >= increment ? stepped : current;
+
+  // 내려갈 때도 마찬가지 — 반올림이 위로 튀면 안 된다.
+  const down = rounded < current ? rounded : roundToIncrement(current - increment, increment);
+  // 0kg이나 음수로는 내려가지 않는다. 한 칸도 못 내려갈 만큼 가벼우면 그 자리에 둔다.
+  return down >= increment ? down : current;
 }
 
 export function roundToIncrement(kg: number, increment: number): number {
@@ -304,7 +311,25 @@ export function isStalled(
     });
   }
 
-  if (previousMax <= 0) return false;
+  if (previousMax <= 0) {
+    // 맨몸 종목(무게 0)은 e1RM이 항상 0이라 여기서 언제나 false로 빠져나갔다.
+    // 즉 **턱걸이·딥스 같은 종목은 아무리 제자리를 걸어도 정체로 잡히지 않았다.**
+    // 무게가 없으면 발전의 척도는 횟수이므로 최고 횟수로 같은 판정을 한다.
+    // (외부 검토 지적, 코드에서 확인 — 2026-08-27)
+    const bestReps = (from: number, to: number) => {
+      let best = 0;
+      for (let i = from; i < to; i++) {
+        const ex = matchingSessions[i].exercises.find(e => e.exerciseId === exerciseId);
+        ex?.sets.filter(st => st.isCompleted).forEach(st => {
+          if (st.reps > best) best = st.reps;
+        });
+      }
+      return best;
+    };
+    const prevReps = bestReps(windowSize, matchingSessions.length);
+    if (prevReps <= 0) return false;
+    return bestReps(0, windowSize) <= prevReps;
+  }
   // 0.5% 여유: recentMax가 previousMax * 1.005를 넘지 못하면 정체
   return recentMax <= previousMax * 1.005;
 }
