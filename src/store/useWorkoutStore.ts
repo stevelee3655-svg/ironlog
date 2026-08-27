@@ -19,6 +19,7 @@ import {
   recommend, 
   adjustRemaining,
   isHardSet,
+  isCardioLike,
   TIER_DEFAULTS,
   DEFAULT_INCREMENT,
   setBodyWeightKg
@@ -1048,7 +1049,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
           if (merged.rpe !== undefined) {
             merged.actualRir = Math.max(0, 10 - merged.rpe);
           }
-          merged.isHardSet = isHardSet(merged, se.tier || 'secondary');
+          merged.isHardSet = isHardSet(merged, se.tier || 'secondary', isCardioLike(se));
           updatedSetCompleted = merged;
           targetRpeForSet = merged.targetRpe ?? (merged.targetRir !== undefined ? 10 - merged.targetRir : 8);
           return merged;
@@ -1157,7 +1158,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
           const defaultTargetRir = s.targetRir ?? (s.targetRpe !== undefined ? 10 - s.targetRpe : 2);
           const actualRir = s.actualRir ?? (nextIsCompleted ? defaultTargetRir : undefined);
           const rpe = actualRir !== undefined ? 10 - actualRir : (s.targetRpe ?? 8);
-          const isHard = isHardSet({ ...s, rpe, actualRir }, se.tier || 'secondary');
+          const isHard = isHardSet({ ...s, rpe, actualRir }, se.tier || 'secondary', isCardioLike(se));
 
           const updated: WorkoutSet = {
             ...s,

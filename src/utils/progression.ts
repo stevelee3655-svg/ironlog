@@ -808,10 +808,32 @@ export function adjustRemaining(
 // ==========================================
 
 /**
+ * 유산소인지. **판정은 여기 한 곳에만 둔다.**
+ *
+ * 예전에는 부르는 쪽마다 이 조건을 다시 적었고, 그러다 세 곳 중 두 곳에만 적어서
+ * 러닝머신 한 판이 하드 세트로 세어졌다(외부 검토 지적 — 2026-08-27).
+ * 옛 기록에는 cardioMetrics가 없을 수 있어 부위 이름으로도 받아 준다.
+ */
+export function isCardioLike(ex: {
+  cardioMetrics?: unknown[];
+  muscleGroup?: string;
+}): boolean {
+  return !!ex.cardioMetrics?.length || ex.muscleGroup === '유산소';
+}
+
+/**
  * 하드 세트 판정:
  * 주 운동(primary)은 RPE 6 이상 (RIR 4 이하), 보조(secondary)·고립(isolation)은 RPE 7 이상 (RIR 3 이하).
+ *
+ * 유산소는 **세지 않는다.** 유산소는 「1회」로 한 판을 적고 RPE를 누르지 않으므로,
+ * 그냥 두면 아래의 「아무것도 안 눌렀으면 하드 세트」 규칙에 걸려 한 판이 한 개로 센다.
  */
-export function isHardSet(set: WorkoutSet, tier: ExerciseTier = 'secondary'): boolean {
+export function isHardSet(
+  set: WorkoutSet,
+  tier: ExerciseTier = 'secondary',
+  isCardio = false
+): boolean {
+  if (isCardio) return false;
   const rpe = set.rpe ?? (set.actualRir !== undefined ? 10 - set.actualRir : undefined);
   if (rpe !== undefined) {
     return tier === 'primary' ? rpe >= 6 : rpe >= 7;
@@ -947,7 +969,7 @@ export function calculateWeeklyVolume(
         // 런닝머신 30분이 **저반복(1~5회) 세트 한 개**로 잡히고,
         // RPE를 누르는 종목이 아니니 「확인 불가」 숫자도 매번 부풀린다.
         // 옛 기록에는 cardioMetrics가 없을 수 있어 부위 이름으로도 받아 준다.
-        const isCardio = !!ex.cardioMetrics?.length || ex.muscleGroup === '유산소';
+        const isCardio = isCardioLike(ex);
         ex.sets.forEach(set => {
           // reps가 비어 있을 수 있다(입력 중). `set.reps <= 0`은 undefined에서
           // false가 되어 통과해 버리므로 양수인지 직접 확인한다.
@@ -966,7 +988,7 @@ export function calculateWeeklyVolume(
             totalUnconfirmed += 1;
           }
 
-          if (isHardSet(set, tier)) {
+          if (isHardSet(set, tier, isCardio)) {
             muscleHardSets[ex.muscleGroup] = (muscleHardSets[ex.muscleGroup] || 0) + 1;
             totalHardSets += 1;
           }
