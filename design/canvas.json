@@ -1,0 +1,21 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",   "x": 0,    "y": 0, "w": 390, "h": 844, "title": "세트 전 · 지시" },
+    { "file": "Record.dc.html", "x": 510,  "y": 0, "w": 390, "h": 844, "title": "세트 후 · 기록" },
+    { "file": "Gauge.dc.html",  "x": 1020, "y": 0, "w": 440, "h": 740, "title": "게이지 · 눌러보기", "is_interactive": true },
+    { "file": "Volume.dc.html", "x": 1560, "y": 0, "w": 390, "h": 844, "title": "주간 볼륨 · 같은 게이지" }
+  ],
+  "annotations": [
+    {
+      "id": "note-one-control",
+      "x": 0, "y": -150, "w": 900,
+      "text": "컨트롤 하나가 두 일을 한다 — 세트 전에는 \"2개 남기고 멈춰\", 세트 후에는 \"몇 개 남았어?\". 그래서 RPE 입력이 별도 화면이 아니라 탭 한 번이 된다."
+    },
+    {
+      "id": "note-same-language",
+      "x": 1560, "y": -150, "w": 390,
+      "text": "같은 게이지를 주간 볼륨에도 쓴다. 검은 구간이 목표 대역, 흰 점이 현재 위치."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

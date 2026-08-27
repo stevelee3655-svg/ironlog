@@ -1,0 +1,315 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 1. Nike (Minimal B&W) */
+[data-theme="nike"], :root {
+  --canvas-bg: #ffffff;
+  --canvas-text: #111111;
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --card-soft-bg: #f5f5f5;
+  --subdued-text: #71717a;
+  --primary-btn-bg: #111111;
+  --primary-btn-text: #ffffff;
+  --primary-btn-hover: #000000;
+  --secondary-btn-bg: #ffffff;
+  --secondary-btn-border: #e5e7eb;
+  --secondary-btn-text: #111111;
+  --input-bg: #f5f5f5;
+  --input-border: #e5e7eb;
+  --input-text: #111111;
+  --input-focus-ring: #111111;
+  --check-btn-active-bg: #111111;
+  --check-btn-active-text: #ffffff;
+  --check-btn-active-border: #111111;
+  --check-btn-inactive-bg: #ffffff;
+  --check-btn-inactive-border: #d4d4d8;
+  --check-btn-inactive-text: #d4d4d8;
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --header-border: #e5e7eb;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --nav-border: #e5e7eb;
+  --accent-pill-bg: #111111;
+  --accent-pill-text: #ffffff;
+  /* 세트 행 — 채움 = 끝낸 것, 테두리 = 지금 할 것, 흐림 = 아직 */
+  --row-fill: #111111;
+  --row-fill-text: #ffffff;
+  --row-now-ring: #111111;
+  --row-todo-text: #6f6f75;
+  --row-todo-border: #e4e4e7;
+  /* 게이지 (RIR · 주간 볼륨) */
+  --gauge-track-bg: #f5f5f5;
+  --gauge-zone-bg: #111111;
+  --gauge-zone-text: #ffffff;
+  --font-family: 'Jost', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-heading: 'Jost', 'Noto Sans KR', sans-serif;
+}
+
+/* 2. Stripe (Electric Indigo Fintech) */
+[data-theme="stripe"] {
+  --canvas-bg: #f6f9fc;
+  --canvas-text: #0d253d;
+  --card-bg: #ffffff;
+  --card-border: #e3e8ee;
+  --card-soft-bg: #f0f4f9;
+  --subdued-text: #64748d;
+  --primary-btn-bg: #533afd;
+  --primary-btn-text: #ffffff;
+  --primary-btn-hover: #4434d4;
+  --secondary-btn-bg: #ffffff;
+  --secondary-btn-border: #e3e8ee;
+  --secondary-btn-text: #0d253d;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --input-text: #0d253d;
+  --input-focus-ring: #533afd;
+  --check-btn-active-bg: #533afd;
+  --check-btn-active-text: #ffffff;
+  --check-btn-active-border: #533afd;
+  --check-btn-inactive-bg: #ffffff;
+  --check-btn-inactive-border: #cbd5e1;
+  --check-btn-inactive-text: #94a3b8;
+  --header-bg: rgba(246, 249, 252, 0.92);
+  --header-border: #e3e8ee;
+  --nav-bg: rgba(255, 255, 255, 0.95);
+  --nav-border: #e3e8ee;
+  --accent-pill-bg: #533afd;
+  --accent-pill-text: #ffffff;
+  --row-fill: #533afd;
+  --row-fill-text: #ffffff;
+  --row-now-ring: #533afd;
+  --row-todo-text: #6b7689;
+  --row-todo-border: #e3ddff;
+  --gauge-track-bg: #eaeff6;
+  --gauge-zone-bg: #533afd;
+  --gauge-zone-text: #ffffff;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+}
+
+/* 3. SpaceX (Cockpit Stealth Black & Laser Cyan) */
+[data-theme="spacex"] {
+  --canvas-bg: #000000;
+  --canvas-text: #ffffff;
+  --card-bg: #0d0d10;
+  --card-border: #27272a;
+  --card-soft-bg: #18181b;
+  --subdued-text: #a1a1aa;
+  --primary-btn-bg: #00e5ff;
+  --primary-btn-text: #000000;
+  --primary-btn-hover: #00c4dc;
+  --secondary-btn-bg: #18181b;
+  --secondary-btn-border: #3f3f46;
+  --secondary-btn-text: #ffffff;
+  --input-bg: #18181b;
+  --input-border: #3f3f46;
+  --input-text: #ffffff;
+  --input-focus-ring: #00e5ff;
+  --check-btn-active-bg: #00e5ff;
+  --check-btn-active-text: #000000;
+  --check-btn-active-border: #00e5ff;
+  --check-btn-inactive-bg: #18181b;
+  --check-btn-inactive-border: #3f3f46;
+  --check-btn-inactive-text: #71717a;
+  --header-bg: rgba(10, 10, 12, 0.92);
+  --header-border: #27272a;
+  --nav-bg: rgba(10, 10, 12, 0.95);
+  --nav-border: #27272a;
+  --accent-pill-bg: #00e5ff;
+  --accent-pill-text: #000000;
+  --row-fill: #00e5ff;
+  --row-fill-text: #001417;
+  --row-now-ring: #00e5ff;
+  --row-todo-text: #8b8b96;
+  --row-todo-border: #223037;
+  --gauge-track-bg: #18181b;
+  --gauge-zone-bg: #00e5ff;
+  --gauge-zone-text: #001417;
+  /* 각진 계기판 서체 + 한글은 Noto Sans KR.
+     예전에는 'Space Grotesk'를 불러오지도 않고 폴백이 monospace로 끝나서
+     윈도우에서 전부 고정폭으로 나왔다. */
+  --font-family: 'Barlow', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-heading: 'Chakra Petch', 'Barlow Condensed', 'Noto Sans KR', sans-serif;
+}
+
+/* 4. Claude (Warm Terracotta & Editorial Cream) */
+[data-theme="claude"] {
+  --canvas-bg: #faf9f5;
+  --canvas-text: #141413;
+  --card-bg: #f4efe6;
+  --card-border: #e6dfd8;
+  --card-soft-bg: #ebe5dc;
+  --subdued-text: #6c6a64;
+  --primary-btn-bg: #cc785c;
+  --primary-btn-text: #ffffff;
+  --primary-btn-hover: #a9583e;
+  --secondary-btn-bg: #faf9f5;
+  --secondary-btn-border: #e6dfd8;
+  --secondary-btn-text: #141413;
+  --input-bg: #faf9f5;
+  --input-border: #dcd4c8;
+  --input-text: #141413;
+  --input-focus-ring: #cc785c;
+  --check-btn-active-bg: #cc785c;
+  --check-btn-active-text: #ffffff;
+  --check-btn-active-border: #cc785c;
+  --check-btn-inactive-bg: #faf9f5;
+  --check-btn-inactive-border: #dcd4c8;
+  --check-btn-inactive-text: #a8a49c;
+  --header-bg: rgba(250, 249, 245, 0.92);
+  --header-border: #e6dfd8;
+  --nav-bg: rgba(250, 249, 245, 0.95);
+  --nav-border: #e6dfd8;
+  --accent-pill-bg: #cc785c;
+  --accent-pill-text: #ffffff;
+  --row-fill: #cc785c;
+  --row-fill-text: #ffffff;
+  --row-now-ring: #cc785c;
+  --row-todo-text: #8a8175;
+  --row-todo-border: #ebe0d8;
+  --gauge-track-bg: #ebe5dc;
+  --gauge-zone-bg: #cc785c;
+  --gauge-zone-text: #ffffff;
+  --font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  --font-heading: Georgia, 'Times New Roman', 'Noto Sans KR', serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--canvas-bg);
+  color: var(--canvas-text);
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* 테마마다 제목 서체를 따로 둔다. 선언만 있고 쓰이지 않으면
+   SpaceX의 각진 서체도 Claude의 세리프도 화면에 나타나지 않는다. */
+h1, h2, h3 {
+  font-family: var(--font-heading);
+}
+
+input, textarea, pre, code {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Minimal Scrollbar */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+
+.pt-safe {
+  padding-top: var(--safe-top);
+}
+.pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Number input spinner reset */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Tactile Physics */
+.tactile-btn {
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.tactile-btn:active {
+  transform: scale(0.94);
+}
+
+.tactile-card {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.tactile-card:active {
+  transform: scale(0.985);
+}
+
+/* Theme Dynamic Buttons */
+.nike-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  border-radius: 9999px;
+  background: var(--primary-btn-bg);
+  color: var(--primary-btn-text);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease;
+}
+.nike-btn-primary:active {
+  transform: scale(0.96);
+  background: var(--primary-btn-hover);
+}
+
+.nike-btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: 9999px;
+  background: var(--secondary-btn-bg);
+  color: var(--secondary-btn-text);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--secondary-btn-border);
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease;
+}
+.nike-btn-secondary:active {
+  transform: scale(0.96);
+}
+
+.nike-btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 1px solid var(--secondary-btn-border);
+  background: var(--secondary-btn-bg);
+  color: var(--secondary-btn-text);
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), all 0.15s ease;
+}
+.nike-btn-outline:active {
+  transform: scale(0.95);
+}
+
+/* Set Checked Pop Animation */
+@keyframes checkPop {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.animate-check-pop {
+  animation: checkPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}

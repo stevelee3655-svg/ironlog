@@ -1,0 +1,191 @@
+<script src="./support.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&display=swap');
+
+  .sheet * { box-sizing: border-box; margin: 0; padding: 0; }
+  .sheet {
+    width: 440px; height: 740px;
+    background: #ffffff; color: #111111;
+    font-family: 'Helvetica Neue', Helvetica, Arial, 'Malgun Gothic', sans-serif;
+    padding: 32px 28px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .disp {
+    font-family: 'Jost', 'Century Gothic', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 600; letter-spacing: -0.02em;
+  }
+
+  .kicker {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #9e9ea0; margin-bottom: 10px;
+  }
+  h1 { font-size: 34px; line-height: 1.05; }
+  .lede { margin-top: 10px; font-size: 13px; line-height: 1.6; color: #707072; }
+
+  .ctx {
+    margin-top: 26px; padding: 14px 18px;
+    background: #f5f5f5; border-radius: 18px;
+    font-size: 13px; color: #4b4b4d;
+  }
+  .ctx b { color: #111111; font-weight: 600; }
+
+  .gauge { margin-top: 24px; }
+  .glabel {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 11px;
+  }
+  .glabel b { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .glabel em {
+    font-style: normal; font-size: 11px; color: #9e9ea0;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .track {
+    position: relative; height: 52px; border-radius: 9999px;
+    background: #f5f5f5; overflow: hidden; cursor: pointer;
+  }
+  .zone {
+    position: absolute; top: 0; bottom: 0; left: 20%; width: 60%;
+    background: #111111; border-radius: 9999px;
+  }
+  .stops { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(5, 1fr); }
+  .stops button {
+    all: unset;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit; font-size: 15px; font-variant-numeric: tabular-nums;
+    color: #9e9ea0; cursor: pointer; border-radius: 9999px; margin: 3px;
+  }
+  .stops button.in { color: #ffffff; }
+  .stops button.pick {
+    color: #111111; font-weight: 600; font-size: 16px;
+    background: #ffffff; box-shadow: inset 0 0 0 2px #111111;
+  }
+  .ends {
+    display: flex; justify-content: space-between; margin-top: 10px;
+    font-size: 10px; letter-spacing: 0.1em; color: #9e9ea0; text-transform: uppercase;
+  }
+
+  .out {
+    margin-top: 24px; padding-top: 18px; border-top: 1px solid #e5e5e5;
+    min-height: 104px;
+  }
+  .out .k {
+    font-size: 10px; letter-spacing: 0.1em; color: #9e9ea0;
+    text-transform: uppercase; margin-bottom: 9px;
+  }
+  .out .v { font-size: 22px; letter-spacing: -0.02em; }
+  .out .v u { text-decoration: none; font-weight: 600; }
+  .out .v u.up { color: #007d48; }
+  .out .v u.dn { color: #d30005; }
+  .out .sub { margin-top: 9px; font-size: 12px; line-height: 1.6; color: #707072; }
+  .out .hint { font-size: 13px; color: #9e9ea0; }
+
+  .rules {
+    margin-top: 22px; padding-top: 18px; border-top: 1px solid #e5e5e5;
+  }
+  .rules .k {
+    font-size: 10px; letter-spacing: 0.1em; color: #9e9ea0;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+  .rules ul { list-style: none; }
+  .rules li {
+    display: flex; gap: 12px; font-size: 12px; line-height: 1.6;
+    color: #707072; padding: 5px 0;
+  }
+  .rules li i {
+    font-style: normal; flex: none; width: 62px;
+    font-variant-numeric: tabular-nums; color: #111111; font-weight: 600;
+  }
+</style>
+
+<div class="sheet">
+  <div class="kicker">Component</div>
+  <h1 class="disp">RIR 게이지</h1>
+  <p class="lede">
+    지시와 기록을 한 컨트롤로 처리한다. 세트 전에는 어디서 멈출지 보여주고,
+    세트 후에는 어디서 멈췄는지 받는다. 눌러봐.
+  </p>
+
+  <div class="ctx">
+    랫 풀다운 · 1세트 · 목표 <b>RIR 2</b> · <b>52.5kg × 8회</b>
+  </div>
+
+  <div class="gauge">
+    <div class="glabel">
+      <b id="gq">몇 개 더 됐을까?</b>
+      <em>탭 한 번</em>
+    </div>
+    <div class="track">
+      <div class="zone"></div>
+      <div class="stops" id="stops">
+        <button data-v="0">0</button>
+        <button data-v="1" class="in">1</button>
+        <button data-v="2" class="in">2</button>
+        <button data-v="3" class="in">3</button>
+        <button data-v="4">4+</button>
+      </div>
+    </div>
+    <div class="ends"><span>한계</span><span>여유</span></div>
+  </div>
+
+  <div class="out" id="out">
+    <div class="hint">아직 안 골랐어. 0부터 4+ 중 하나를 눌러봐.</div>
+  </div>
+
+  <div class="rules">
+    <div class="k">판정 규칙 · Nippard 챕터 10</div>
+    <ul>
+      <li><i>목표 ±1</i>무게 선택이 적절했다. 그대로 간다.</li>
+      <li><i>2 이상 힘듦</i>부하를 5~10% 낮춘다.</li>
+      <li><i>2 이상 쉬움</i>부하를 5~10% 올린다.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  var TARGET = 2, WEIGHT = 52.5, INC = 2.5;
+  var stops = document.getElementById('stops');
+  var out = document.getElementById('out');
+  var gq = document.getElementById('gq');
+
+  function round(kg) { return Math.round(kg / INC) * INC; }
+
+  function render(v) {
+    var diff = v - TARGET;
+    var k, val, sub;
+
+    if (Math.abs(diff) <= 1) {
+      k = '남은 세트';
+      val = '2·3세트 <u>' + WEIGHT + 'kg</u> × 8회';
+      sub = '목표에서 ' + (diff === 0 ? '정확했어' : '1점 차이야') +
+            '. 무게 선택이 적절했다는 뜻이라 그대로 간다.';
+    } else if (diff > 1) {
+      var up = round(WEIGHT * 1.05);
+      k = '남은 세트 조정됨';
+      val = '2·3세트 <u class="up">' + up + 'kg</u> × 8회';
+      sub = '2개 남기는 게 목표였는데 ' + (v === 4 ? '4개 넘게' : v + '개') +
+            ' 남았어. 무게가 가볍다는 뜻이라 <b>다음 주가 아니라 지금</b> 올린다.';
+    } else {
+      var dn = round(WEIGHT * 0.9);
+      k = '남은 세트 조정됨';
+      val = '2·3세트 <u class="dn">' + dn + 'kg</u> × 8회';
+      sub = '1세트부터 한계까지 갔어. 이대로면 3세트를 못 채운다. ' +
+            '무게를 내려서 볼륨을 지키는 쪽이 낫다.';
+    }
+
+    out.innerHTML =
+      '<div class="k">' + k + '</div>' +
+      '<div class="v">' + val + '</div>' +
+      '<div class="sub">' + sub + '</div>';
+    gq.textContent = v + (v === 4 ? '개 넘게' : '개') + ' 남았다고 기록됨';
+  }
+
+  stops.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    Array.prototype.forEach.call(stops.children, function (c) { c.classList.remove('pick'); });
+    b.classList.add('pick');
+    render(parseInt(b.dataset.v, 10));
+  });
+})();
+</script>
