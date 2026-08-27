@@ -705,21 +705,13 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                 </div>
 
                 {/* 몇 개 채웠는지 한 줄로. 색 기준은 채움 여부라 따로 설명이 필요 없다. */}
-                <div className="flex items-center justify-between pt-0.5 text-[11px] font-semibold tracking-wide"
+                <div className="flex items-center pt-0.5 text-[11px] font-semibold tracking-wide"
                      style={{ color: 'var(--subdued-text)' }}>
                   <span>
                     <b style={{ color: 'var(--canvas-text)' }}>
                       {se.sets.filter(s => s.isCompleted).length}
                     </b>
                     {' / '}{se.sets.length} 세트 채움
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <i className="inline-block w-3 h-3 rounded-[3px]"
-                       style={{ background: 'var(--row-fill)' }} />
-                    끝냄
-                    <i className="inline-block w-3 h-3 rounded-[3px] ml-2"
-                       style={{ border: '2px solid var(--row-now-ring)' }} />
-                    지금
                   </span>
                 </div>
 

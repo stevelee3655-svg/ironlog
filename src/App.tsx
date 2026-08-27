@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { Header } from './components/common/Header';
 import { BottomNav, NavTab } from './components/common/BottomNav';
 import { ActiveWorkoutView } from './components/workout/ActiveWorkoutView';
@@ -7,10 +7,18 @@ import { ExerciseManager } from './components/exercises/ExerciseManager';
 import { HistoryView } from './components/history/HistoryView';
 import { SettingsView } from './components/settings/SettingsView';
 import { RestTimerBar } from './components/workout/RestTimerBar';
-import { useWorkoutStore } from './store/useWorkoutStore';
+import {
+  useWorkoutStore,
+  getStorageAlert,
+  clearStorageAlert,
+  subscribeStorageAlert
+} from './store/useWorkoutStore';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('workout');
+  // 기록이 저장되지 않는 상황은 반드시 눈에 보여야 한다 — 조용히 넘어가면
+  // 저장되고 있다고 믿은 채로 몇 주를 더 운동하게 된다.
+  const storageAlert = useSyncExternalStore(subscribeStorageAlert, getStorageAlert, () => null);
   const startRoutineSession = useWorkoutStore(state => state.startRoutineSession);
   const settings = useWorkoutStore(state => state.settings);
 
@@ -43,6 +51,27 @@ export const App: React.FC = () => {
         onOpenSettings={() => setActiveTab('settings')}
         onNavigateToWorkout={() => setActiveTab('workout')}
       />
+
+      {storageAlert && (
+        <div
+          role="alert"
+          className="max-w-lg w-full mx-auto px-5 pt-3"
+        >
+          <div
+            className="rounded-2xl px-4 py-3 text-sm leading-relaxed flex items-start gap-3"
+            style={{ background: 'var(--warn-bg, #fdecea)', color: 'var(--warn-text, #7a1c12)' }}
+          >
+            <span className="flex-1">{storageAlert}</span>
+            <button
+              type="button"
+              onClick={clearStorageAlert}
+              className="shrink-0 underline underline-offset-2 opacity-80"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-lg w-full mx-auto px-5">

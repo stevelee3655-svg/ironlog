@@ -24,6 +24,7 @@ import {
 import { syncWorkoutToGoogleDrive } from '../services/driveSync';
 import { buildGymExercises, RETIRED_EQUIPMENT_IDS, EQUIPMENT_REV, EQUIPMENT_INCREMENTS } from '../data/gymEquipment';
 import { buildGymRoutines } from '../data/gymRoutines';
+import { localDateKey } from '../utils/date';
 
 const STORAGE_KEY = 'ironlog_state_v1';
 
@@ -325,6 +326,17 @@ function enrichExerciseWithDefaults(ex: Partial<Exercise> & { repRange?: { min: 
   };
 }
 
+/**
+ * 저장해 둔 휴식 타이머를 되살린다. 끝나는 시각이 이미 지났으면 버린다 —
+ * 어제 남겨 둔 타이머가 오늘 켜자마자 울리면 안 된다.
+ */
+function restoreTimer(saved: any): ActiveTimerState | null {
+  if (!saved || typeof saved.endTimeMs !== 'number') return null;
+  const remaining = Math.ceil((saved.endTimeMs - Date.now()) / 1000);
+  if (remaining <= 0) return null;
+  return { ...saved, isRunning: true, remainingSeconds: remaining };
+}
+
 function loadInitialState() {
   if (typeof window === 'undefined') {
     return {
@@ -332,6 +344,7 @@ function loadInitialState() {
       routines: buildGymRoutines(new Date().toISOString()),
       history: [],
       activeSession: null,
+      activeTimer: null,
       settings: {
         gasWebhookUrl: '',
         gasSharedSecret: '',
@@ -345,10 +358,24 @@ function loadInitialState() {
     };
   }
 
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
+      // JSON이 깨졌을 때 그냥 catch로 흘려보내면 기본값으로 시작하고,
+      // 그다음 아무 동작에서나 saveStateToStorage가 **원본을 덮어써서 몇 달치가 사라진다.**
+      // 그래서 파싱 전에 실패를 따로 잡아 원본을 다른 키로 옮겨 둔다.
+      let parsed: any;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (parseError) {
+        const backupKey = STORAGE_KEY + '_corrupt_' + Date.now();
+        try { localStorage.setItem(backupKey, raw); } catch { /* 백업조차 못 하면 어쩔 수 없다 */ }
+        storageAlert =
+          '저장된 기록을 읽지 못했습니다. 원본은 ' + backupKey + ' 에 그대로 남겨 뒀습니다. ' +
+          '덮어쓰기 전에 설정 → 백업 내보내기로 꺼내 주세요.';
+        throw parseError;
+      }
       const rawExercises = Array.isArray(parsed.exercises) && parsed.exercises.length > 0 
         ? parsed.exercises 
         : DEFAULT_STARTER_EXERCISES;
@@ -357,11 +384,12 @@ function loadInitialState() {
         parsed.routines || [],
         parsed.routinesSeeded === true
       );
+      // 기본 종목 8개를 이미 한 번 심었다면 다시 채워 넣지 않는다.
+      // 안 그러면 사용자가 지운 기본 종목이 앱을 켤 때마다 되살아난다(루틴과 같은 이유).
+      const enriched = rawExercises.map((e: Partial<Exercise>) => enrichExerciseWithDefaults(e));
       const enrichedExercises: Exercise[] = dropRetiredEquipment(
         syncEquipmentIncrements(
-          mergeMissingDefaults(
-            rawExercises.map((e: Partial<Exercise>) => enrichExerciseWithDefaults(e))
-          ),
+          parsed.exercisesSeeded === true ? enriched : mergeMissingDefaults(enriched),
           typeof parsed.equipmentRev === 'number' ? parsed.equipmentRev : 0
         ),
         storedRoutines
@@ -372,6 +400,8 @@ function loadInitialState() {
         routines: storedRoutines,
         history: parsed.history || [],
         activeSession: parsed.activeSession || null,
+        // 저장해 둔 타이머는 아직 안 끝났을 때만 살린다.
+        activeTimer: restoreTimer(parsed.activeTimer),
         settings: {
           gasWebhookUrl: parsed.settings?.gasWebhookUrl || '',
           gasSharedSecret: parsed.settings?.gasSharedSecret || '',
@@ -393,6 +423,7 @@ function loadInitialState() {
     routines: buildGymRoutines(new Date().toISOString()),
     history: [],
     activeSession: null,
+    activeTimer: null,
     settings: {
       gasWebhookUrl: '',
       gasSharedSecret: '',
@@ -447,6 +478,21 @@ function buildSessionExercise(ex: Exercise, history: WorkoutSession[], isDeload:
   };
 }
 
+/**
+ * 저장/불러오기가 실패했을 때 화면에 띄울 경고 문구.
+ * 스토어 상태가 아니라 모듈 변수인 이유 — 이 값은 loadInitialState()가
+ * **스토어가 만들어지기 전에** 이미 정할 수 있어야 한다.
+ */
+let storageAlert: string | null = null;
+const storageAlertListeners = new Set<() => void>();
+export function getStorageAlert(): string | null { return storageAlert; }
+export function clearStorageAlert(): void { storageAlert = null; notifyStorageAlert(); }
+export function subscribeStorageAlert(fn: () => void): () => void {
+  storageAlertListeners.add(fn);
+  return () => { storageAlertListeners.delete(fn); };
+}
+function notifyStorageAlert(): void { storageAlertListeners.forEach(fn => fn()); }
+
 function saveStateToStorage(state: Partial<WorkoutStoreState>) {
   if (typeof window === 'undefined') return;
   try {
@@ -456,14 +502,27 @@ function saveStateToStorage(state: Partial<WorkoutStoreState>) {
       history: state.history,
       activeSession: state.activeSession,
       settings: state.settings,
+      // 휴식 타이머는 끝나는 시각(endTimeMs)으로 굴러가므로, 저장해 두면
+      // 사파리가 앱을 내렸다 올려도 남은 시간이 그대로 이어진다.
+      activeTimer: state.activeTimer ?? null,
       // 증량 단위 마이그레이션이 두 번 돌지 않게 하는 표시
       equipmentRev: EQUIPMENT_REV,
       // 기본 루틴을 한 번 넣었다는 표시. 이게 없으면 사용자가 루틴을 지워도 되살아난다.
-      routinesSeeded: true
+      routinesSeeded: true,
+      // 기본 종목도 마찬가지 — 이 표시가 없으면 지운 기본 종목이 켤 때마다 되살아난다.
+      exercisesSeeded: true
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    if (storageAlert) { storageAlert = null; notifyStorageAlert(); }
   } catch (e) {
     console.error('Failed to save to local storage', e);
+    // 저장 실패를 조용히 넘기면, 기록이 남고 있다고 믿은 채로 몇 주를 더 운동하게 된다.
+    const quota = e instanceof DOMException &&
+      (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED');
+    storageAlert = quota
+      ? '저장 공간이 꽉 차서 이번 기록이 저장되지 않았습니다. 설정에서 백업을 내보낸 뒤 오래된 기록을 정리해 주세요.'
+      : '기록을 저장하지 못했습니다. 사파리 개인정보 보호 모드에서는 저장이 막힐 수 있습니다.';
+    notifyStorageAlert();
   }
 }
 
@@ -475,7 +534,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
   history: initial.history,
   activeSession: initial.activeSession,
   settings: initial.settings,
-  activeTimer: null,
+  activeTimer: initial.activeTimer,
 
   // Exercise CRUD
   addExercise: (name, muscleGroup, tier, loadType, repRange, incrementKg, defaultRestSeconds, notes = '') => {
@@ -563,7 +622,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
     const newSession: WorkoutSession = {
       id: 'ws_' + Date.now(),
       title,
-      date: now.toISOString().split('T')[0],
+      date: localDateKey(now),
       startTime: now.toISOString(),
       durationMinutes: 0,
       exercises: [],
@@ -671,7 +730,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
       title: routine.name,
       routineId: routine.id,
       routineName: routine.name,
-      date: now.toISOString().split('T')[0],
+      date: localDateKey(now),
       startTime: now.toISOString(),
       durationMinutes: 0,
       exercises: sessionExercises,

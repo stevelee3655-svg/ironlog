@@ -1,4 +1,5 @@
 import { WorkoutSession, SessionExercise } from '../types/workout';
+import { localDateKey } from './date';
 import { 
   estimate1RM, 
   lastPerformance, 
@@ -33,7 +34,8 @@ export function comma(n: number): string {
  * 시작 시각을 포함한 유일한 파일명 생성 (동명 덮어쓰기 방지)
  */
 export function getWorkoutFilename(session: WorkoutSession): string {
-  const dateStr = session.date || new Date().toISOString().split('T')[0];
+  // UTC로 바꾸면 오전 운동이 전날 파일에 붙는다(한국은 UTC+9).
+  const dateStr = session.date || localDateKey();
   const titleStr = (session.title || session.routineName || '운동')
     .trim()
     .replace(/[/\\?%*:|"<>]/g, '-');

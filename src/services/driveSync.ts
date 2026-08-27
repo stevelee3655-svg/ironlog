@@ -1,5 +1,6 @@
 import { WorkoutSession, SyncResponse } from '../types/workout';
 import { generateWorkoutMarkdown, getWorkoutFilename, TopSet } from '../utils/markdownGenerator';
+import { localDateKey } from '../utils/date';
 
 export const GAS_SCRIPT_CODE = `/**
  * IronLog -> Google Drive (Wiki/raw/건강/) 자동 동기화 Webhook
@@ -176,7 +177,7 @@ export async function testGasWebhookConnection(webhookUrl: string, sharedSecret:
     const testSession: WorkoutSession = {
       id: 'test-ping',
       title: '연결 테스트',
-      date: new Date().toISOString().split('T')[0],
+      date: localDateKey(),
       startTime: new Date().toISOString(),
       durationMinutes: 1,
       exercises: [],
