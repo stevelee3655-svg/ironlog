@@ -7,16 +7,17 @@
  *
  * 이 저장소에는 SVG 래스터라이저가 없고(sharp·resvg 모두 없음) 그 하나를 위해
  * 의존성을 늘리고 싶지 않다. icon.svg는 사각형과 원뿐이라 직접 그리는 편이 싸다.
- * 색은 Stripe DESIGN.md 값을 쓴다(캔버스 흰색, canvas-soft, hairline, 인디고).
+ * 색은 public/icon.svg에서 그대로 가져온다.
  */
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-const INDIGO = [0x53, 0x3a, 0xfd];   // colors.primary
-const CANVAS = [0xff, 0xff, 0xff];   // colors.canvas
-const SOFT = [0xf6, 0xf9, 0xfc];     // colors.canvas-soft
-const HAIRLINE = [0xe3, 0xe8, 0xee]; // colors.hairline
+// public/icon.svg와 **같은 색**이어야 한다. 파비콘과 홈 화면 아이콘이 달라 보이면 안 된다.
+const BAR = [0x11, 0x11, 0x11];      // 바벨
+const CANVAS = [0xff, 0xff, 0xff];   // 배경
+const SOFT = [0xf5, 0xf5, 0xf5];     // 원
+const HAIRLINE = [0xca, 0xca, 0xcb]; // 원 테두리
 
 /** 512 기준 좌표를 size 기준으로 옮긴다. icon.svg의 도형을 그대로 옮겨 적었다. */
 function drawIcon(size) {
@@ -54,7 +55,7 @@ function drawIcon(size) {
     const x1 = Math.round((rx + rw) * s), y1 = Math.round((ry + rh) * s);
     for (let y = y0; y < y1; y++) {
       for (let x = x0; x < x1; x++) {
-        if (x >= 0 && x < size && y >= 0 && y < size) put(x, y, INDIGO);
+        if (x >= 0 && x < size && y >= 0 && y < size) put(x, y, BAR);
       }
     }
   }

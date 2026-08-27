@@ -1,111 +1,140 @@
 ---
-name: IronLog — Stripe
-source: OneDrive/awesome-design-md/design-md/stripe/DESIGN.md
-theme-id: stripe
+name: SpaceX Starship Mission Control
 colors:
-  primary: "#533afd"
-  primary-deep: "#4434d4"
-  primary-press: "#2e2b8c"
-  primary-soft: "#665efd"
-  primary-subdued: "#b9b9f9"
-  brand-dark-900: "#1c1e54"
-  ruby: "#ea2261"
-  magenta: "#f96bee"
-  lemon: "#9b6829"
-  canvas: "#ffffff"
-  canvas-soft: "#f6f9fc"
-  canvas-cream: "#f5e9d4"
-  hairline: "#e3e8ee"
-  hairline-input: "#a8c3de"
-  ink: "#0d253d"
-  ink-secondary: "#273951"
-  ink-mute: "#64748d"
-  on-primary: "#ffffff"
+  canvas: "#05070B"
+  surface-cockpit: "#0B101D"
+  surface-card: "#101827"
+  surface-elevated: "#182338"
+  surface-soft: "#131C2E"
+  laser-cyan: "#00F0FF"
+  laser-cyan-glow: "rgba(0, 240, 255, 0.35)"
+  plasma-amber: "#FF9100"
+  plasma-amber-glow: "rgba(255, 145, 0, 0.3)"
+  hazard-red: "#FF3366"
+  orbit-emerald: "#00FF9D"
+  hull-border: "#1E2C45"
+  hull-hairline: "#2A3C5C"
+  text-telemetry: "#E2EDF8"
+  text-subtle: "#7E93B0"
+  text-dim: "#475A75"
 typography:
-  family: "Inter, 'Noto Sans KR', sans-serif"
-  display-weight: 300
-  body-weight: 300
-  button-weight: 400
-  feature-settings: "ss01 (전역) · tnum (숫자 칸)"
+  display-hud:
+    fontFamily: Space Grotesk, Chakra Petch, sans-serif
+    fontSize: 2.5rem
+    fontWeight: 700
+    letterSpacing: -0.03em
+    lineHeight: 1.1
+  telemetry-mono:
+    fontFamily: Space Grotesk, JetBrains Mono, monospace
+    fontSize: 0.875rem
+    fontWeight: 600
+    letterSpacing: 0.05em
+  headline-md:
+    fontFamily: Space Grotesk, sans-serif
+    fontSize: 1.25rem
+    fontWeight: 700
+    letterSpacing: -0.01em
+  body-md:
+    fontFamily: Space Grotesk, Noto Sans KR, sans-serif
+    fontSize: 0.875rem
+    fontWeight: 400
+    lineHeight: 1.5
+  label-caps:
+    fontFamily: Space Grotesk, monospace
+    fontSize: 0.6875rem
+    fontWeight: 700
+    letterSpacing: 0.08em
+    textTransform: uppercase
 rounded:
-  xs: 4px
-  sm: 6px
-  md: 8px
-  lg: 12px
-  xl: 16px
-  pill: 9999px
+  hud-sm: 6px
+  hud-md: 12px
+  hud-lg: 18px
+  hud-pill: 9999px
 spacing:
+  cockpit-gap: 16px
+  telemetry-pad: 20px
   unit: 8px
-  card-padding: 24px
+components:
+  hud-panel:
+    backgroundColor: "{colors.surface-card}"
+    borderColor: "{colors.hull-border}"
+    borderWidth: 1px
+    rounded: "{rounded.hud-md}"
+    boxShadow: "0 8px 32px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)"
+  button-thrust:
+    backgroundColor: "{colors.laser-cyan}"
+    textColor: "#05070B"
+    typography: "{typography.telemetry-mono}"
+    rounded: "{rounded.hud-pill}"
+    height: 48px
+    padding: "0 24px"
+    boxShadow: "0 0 20px {colors.laser-cyan-glow}"
+  set-check-active:
+    backgroundColor: "{colors.laser-cyan}"
+    textColor: "#05070B"
+    borderColor: "{colors.laser-cyan}"
+    boxShadow: "0 0 16px {colors.laser-cyan-glow}"
+  timer-ring:
+    trackColor: "{colors.hull-border}"
+    progressColor: "{colors.plasma-amber}"
+    glowColor: "{colors.plasma-amber-glow}"
 ---
 
-# IronLog 디자인 — Stripe
+# IronLog V2: SpaceX Astronaut & Mission Control Spec
 
-## 0. 이 문서의 위치
+## 1. 개요 및 디자인 철학 (Overview & Design Philosophy)
 
-**정본은 여기가 아니다.** 값의 출처는
-`C:\Users\이수환\OneDrive\awesome-design-md\design-md\stripe\DESIGN.md`이고,
-이 문서는 그것을 IronLog에 어떻게 옮겼는지만 적는다. 값이 어긋나면 그쪽이 맞다.
+IronLog V2는 단순한 헬스장 기록용 수첩을 넘어, 사용자가 훈련할 때마다 **"심우주 미션을 앞두고 극한의 신체 적응 훈련을 수행하는 스타쉽(Starship) 우주비행사"**가 된 듯한 몰입감을 제공하는 SF 시네마틱 피트니스 인터페이스입니다.
 
-2026-08-27 이전에는 이 자리에 **SpaceX 미션 컨트롤 시안**이 적혀 있었다. 앱은 그것을
-따르지 않고 나이키 흑백 테마로 돌아가고 있었고, 문서와 화면이 서로 다른 말을 했다.
-수환이 *"design.md의 디자인 가이드라인을 정확히 따라가. stripe로"* 라고 정리해서
-Stripe로 갈아 끼웠다. 스페이스X 테마는 지금도 앱에 남아 있지만 **기본값이 아니다.**
+### 핵심 디자인 3원칙
+1. **Astronaut Mission Cockpit (우주선 조종석 및 HUD)**:
+   - 어둡고 밀도 있는 우주 공간(`canvas: #05070B`) 위에 선명한 레이저 사이안(`laser-cyan: #00F0FF`)과 플라즈마 앰버(`plasma-amber: #FF9100`) 고대비 발광 인디케이터를 적용하여 조도가 낮은 헬스장 환경에서도 압도적인 시인성과 몰입감을 선사합니다.
+2. **Mission Telemetry Live Feedback (실시간 비행 데이터 계측)**:
+   - 총 볼륨은 우주선이 들어 올린 `Payload Mass (kg / ton)`로, 세트는 `Stage Booster Burn`으로 시각화되며, 경과 시간은 로켓 발사 카운트다운 타이머 포맷(`T+ 00:45:12`)으로 표기됩니다.
+3. **Adaptive Responsive Layout (반응형 관제센터 HUD)**:
+   - **모바일**: 엄지손가락으로 탭하기 쉬운 1열 터치 친화적 콕핏 카드.
+   - **태블릿/데스크톱**: NASA/SpaceX 관제센터처럼 좌측 실시간 텔레메트리 레이더 패널과 우측 인터랙티브 세트 실행 매트릭스로 자동 분할되는 2열 반응형 뷰.
 
-## 1. 이 시스템의 정체성 셋
+---
 
-값을 옮길 때 이 셋을 놓치면 색만 인디고인 다른 앱이 된다.
+## 2. 컬러 및 시각 아이덴티티 (Color & Visual Identity)
 
-1. **얇은 글자가 브랜드다.** 본문·제목 모두 두께 300이다. 원문은 이렇게 못 박는다 —
-   *"Bumping to 400+ removes the brand's editorial air."* 버튼 글자와 10~12px 대문자
-   라벨만 400으로 올린다. IronLog는 화면 전체가 `font-bold`로 짜여 있어서,
-   `[data-theme="stripe"]` 안에서만 두께를 되돌린다(`src/index.css`).
-2. **큰 글자에는 음수 자간.** 56px에서 -1.4px, 20px에서 -0.2px. 크기에 비례한다.
-3. **숫자 칸은 고정폭(`tnum`).** 무게·횟수·볼륨이 자리마다 흔들리지 않는다.
-   금융 데이터를 다루는 브랜드라는 티를 이 미세한 곳에서 낸다.
+- **Canvas Deep Space (`#05070B`)**: 광활한 우주 진공을 상징하는 극심도 블랙.
+- **Surface Cockpit (`#0B101D`) & Card (`#101827`)**: 티타늄 선체와 계기판 패널 질감.
+- **Laser Cyan (`#00F0FF`)**: 주 추진체 점화, 세트 완수 체크, 주요 CTA 버튼.
+- **Plasma Amber (`#FF9100`)**: 생명유지장치 궤도 휴식 타이머(Rest Timer) 및 주의 알림.
+- **Hazard Red (`#FF3366`)**: 미션 중단(Abort) 및 비상 삭제.
+- **Orbit Emerald (`#00FF9D`)**: 텔레메트리 정상(Nominal) 상태 및 Google Drive 동기화 완료 신호.
 
-## 2. 색
+---
 
-- **인디고 `#533afd`** — 채워진 알약 버튼. 원문은 *"used sparingly: one filled pill
-  per band"* 라고 한다. 한 카드에 채워진 버튼은 하나뿐이다.
-- **잉크 `#0d253d`** — 모든 본문 글자. **순검정을 쓰지 않는다.**
-- **캔버스 `#ffffff`** / **캔버스 소프트 `#f6f9fc`** — 기본 배경과 한 단계 눌린 면.
-- **헤어라인 `#e3e8ee`** — 카드·표의 1px 테두리. 입력칸만 `#a8c3de`로 조금 차갑다.
-- **루비 `#ea2261` · 마젠타 `#f96bee` · 레몬 `#9b6829`** — 그라디언트 띠 안에서만 쓴다.
-  **버튼 색으로 쓰지 않는다.**
+## 3. 오디오 & 햅틱 피드백 수트 (Mission Audio Suite)
 
-원문에는 오류·성공 같은 의미색 팔레트가 따로 없다(*"error / success states live in
-dashboard-product UI specifically"*). 그래서 IronLog의 경고는 루비를 옅게 깐 바탕에
-잉크로 쓴다.
+Web Audio API 신디사이저를 통해 별도의 무거운 사운드 파일 없이 브라우저에서 순수 파형(Sine/Sawtooth)을 합성합니다.
+- **Quindar Telemetry Beep (세트 완료)**: 아폴로/스페이스X 교신 특유의 2,525Hz + 2,475Hz 헤르츠 고주파 비프.
+- **Thrust Ignition (운동 시작/완료)**: 저주파 서브베이스(Sub-bass) 램프 다운 사운드.
+- **Countdown Pulse (휴식 3-2-1초)**: 계기판 경고음 틱.
 
-## 3. 그라디언트 띠
+---
 
-이 브랜드에서 가장 먼저 알아보는 요소다. 크림 → 셔벗 → 라벤더 → 인디고 → 루비를
-가로로 눕혀 **화면 위쪽을 가로지르고** 아래로 흰 캔버스에 녹인다.
-IronLog에서는 헤더 뒤에 깔았다(`.stripe-mesh`, `Header.tsx`).
+## 4. 시스템 아키텍처 & 데이터 흐름 (System Architecture)
 
-## 4. 서체
+```mermaid
+flowchart TD
+    User([우주비행사 / 사용자]) -->|세트 완료 & 중량 입력| UI[SpaceX Cockpit HUD]
+    UI --> Store[Zustand Local-First Store]
+    Store -->|Realtime Autosave| LS[(LocalStorage Backup)]
+    UI --> Synth[Web Audio Synthesizer<br>Quindar Beeps & Haptics]
+    UI -->|미션 완료| Exporter[Markdown Generator Engine]
+    Exporter -->|YAML Frontmatter + Tables| MDDoc[Formatted .md Document]
+    MDDoc -->|HTTPS POST| GAS[Google Apps Script Webhook]
+    GAS -->|Auto-File Create| GDrive[(Google Drive / Wiki/raw/건강/)]
+    GDrive --> LLM[AI Agent / Second Brain Analysis]
+```
 
-죄네(Söhne)는 클림 타입 파운드리의 유료 서체라 쓸 수 없다. **원문이 직접 공개 대체
-서체를 지정한다** — Inter 두께 300에 `ss01`을 켜고 큰 글자에 음수 자간을 준다.
-원문은 system-ui로 떨어지는 것을 **명시적으로 금지한다**(브랜드에 비해 두껍다).
-한글은 Noto Sans KR 300으로 받는다.
+---
 
-## 5. 아이콘
-
-`public/icon.svg`(파비콘)와 `public/apple-touch-icon.png`,
-`public/icons/icon-{192,512}.png`가 **같은 도형**이고 색은 위의 팔레트다.
-
-PNG는 `scripts/make-icons.cjs`가 만든다. 저장소에 SVG 래스터라이저가 없어서
-사각형과 원을 직접 그리는 쪽을 택했다(그 하나 때문에 sharp를 넣지 않았다).
-**도형을 고치면 SVG와 PNG를 같이 고쳐야 한다.**
-
-2026-08-27 이전에는 매니페스트가 `/icons/icon-192x192.png`를 가리키는데 그 파일이
-아예 없었다. 폰 홈 화면에 추가하면 아이콘이 비어 있었다.
-
-## 6. 검증 기준
-
-- 375px(아이폰)에서 가로 스크롤이 생기지 않는다. 알약 버튼은 접히지 않는다.
-- 무게·횟수 계산의 단위 시험 통과(`npm test`).
-- 배포 전에 로컬 개발 서버로 띄워 **화면을 눈으로 확인한다.**
-  수환은 코드 diff나 테스트 출력으로는 판단하지 않는다.
+## 5. 검증 및 품질 기준 (Verification Standards)
+- 디자인 토큰 및 반응형 뷰포트 완벽 호환 (375px 모바일 ~ 1920px 울트라와이드).
+- 모든 세트 및 볼륨 계산의 무결성 단위 테스트 통과 (`Vitest`).
+- Google Apps Script를 통한 Google Drive 마크다운 자동 생성 파싱 규격 100% 준수.

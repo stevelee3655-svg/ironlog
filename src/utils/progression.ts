@@ -507,8 +507,8 @@ export function recommend(
       sets,
       restSeconds,
       reason: assisted
-        ? `보조 ${starterWeight}kg(체중의 절반쯤)에서 하단 횟수(${repLow}회)부터 시작합니다. 이 기구는 숫자가 클수록 쉬워집니다.`
-        : `폼이 확실한 가벼운 무게로 하단 횟수(${repLow}회)부터 시작합니다.`,
+        ? `첫 기록 · 보조 ${starterWeight}kg · ${repLow}회부터`
+        : `첫 기록 · 가볍게 ${repLow}회부터`,
       stalled: false,
       basis: {}
     };
@@ -546,8 +546,8 @@ export function recommend(
       sets,
       restSeconds,
       reason: assisted
-        ? `디로드 주간 — 부하 -10%(${moveText(workingWeight, deloadWeight)}), 세트수 -1, RPE -2로 피로를 회복합니다.`
-        : `디로드 주간 — 무게 -10%(${workingWeight}→${deloadWeight}kg), 세트수 -1, RPE -2로 피로를 회복합니다.`,
+        ? `디로드 · 부하 -10% ${moveText(workingWeight, deloadWeight)} · 세트 -1`
+        : `디로드 · -10% ${workingWeight}→${deloadWeight}kg · 세트 -1`,
       stalled,
       basis
     };
@@ -573,8 +573,8 @@ export function recommend(
       sets,
       restSeconds,
       reason: assisted
-        ? `지난 세션 과도한 피로 감지 → 부하 -10%(${moveText(workingWeight, reducedWeight)}) 및 하단(${repLow}회)으로 재정비합니다.`
-        : `지난 세션 과도한 피로 감지 → 무게 -10% 감량(${workingWeight}→${reducedWeight}kg) 및 하단(${repLow}회)으로 재정비합니다.`,
+        ? `지난주 과부하 → 부하 -10% ${moveText(workingWeight, reducedWeight)} · ${repLow}회`
+        : `지난주 과부하 → -10% ${workingWeight}→${reducedWeight}kg · ${repLow}회`,
       stalled,
       basis
     };
@@ -596,8 +596,8 @@ export function recommend(
       sets,
       restSeconds,
       reason: assisted
-        ? `전 세트 하단 횟수(${repLow}회) 채우기가 우선입니다 → 보조 ${workingWeight}kg 유지.`
-        : `전 세트 하단 횟수(${repLow}회) 채우기가 우선입니다 → ${workingWeight}kg 유지.`,
+        ? `보조 ${workingWeight}kg 유지 · ${repLow}회 채우기`
+        : `${workingWeight}kg 유지 · ${repLow}회 채우기`,
       stalled,
       basis
     };
@@ -621,7 +621,7 @@ export function recommend(
 
   /** 큰 점프일 때 사유 뒤에 붙일 한 줄. 아니면 빈 문자열. */
   const jumpNote = isLargeJump
-    ? ` (참고: 한 칸 ${increment}kg이 지금 ${assisted ? '부하' : '무게'}의 ${Math.round(jumpRatio * 100)}%라 한 번에 꽤 세집니다 — 버거우면 그대로 두고 횟수를 더 쌓아도 됩니다.)`
+    ? ` · 한 칸이 ${Math.round(jumpRatio * 100)}%로 큼, 버거우면 횟수부터`
     : '';
 
   // [6] 증량 조건 충족 (모든 세트 상단 도달 OR 마지막 RPE가 목표보다 2 이상 낮았음/쉬웠음)
@@ -643,7 +643,7 @@ export function recommend(
         action: 'add_external_load',
         sets,
         restSeconds,
-        reason: `맨몸 횟수 상한(${effectiveRepHigh}회) 완수! 중량 조끼나 벨트 등 외부 중량을 얹을 때입니다.`,
+        reason: `맨몸 ${effectiveRepHigh}회 완수 · 외부 중량 얹을 때`,
         stalled,
         basis
       };
@@ -672,7 +672,7 @@ export function recommend(
         action: 'add_external_load',
         sets,
         restSeconds,
-        reason: `보조 없이(0kg) 상한까지 해냈습니다 — 이제 이 기구로 더 어렵게 만들 수 없습니다. 맨몸 턱걸이로 넘어가거나 중량을 얹을 때입니다.`,
+        reason: `보조 0kg으로 ${effectiveRepHigh}회 완수 · 맨몸 또는 외부 중량으로`,
         stalled,
         basis
       };
@@ -681,11 +681,11 @@ export function recommend(
     // 일반 기구는 「증량」이 그대로 통하지만, 어시스트 기구에서 "증량"이라고 하면
     // 보조를 늘리라는 말로 읽힌다. 그래서 그쪽만 「보조를 줄인다」로 말한다.
     const gainText = assisted
-      ? `보조 -${increment}kg(${moveText(workingWeight, nextWeight)})`
-      : `+${increment}kg 증량(${workingWeight}→${nextWeight}kg)`;
+      ? `보조 -${increment}kg ${moveText(workingWeight, nextWeight)}`
+      : `+${increment}kg ${workingWeight}→${nextWeight}kg`;
     const reason = (allReachedMax
-      ? `지난주 전 세트 ${effectiveRepHigh}회 완료 → ${gainText} 및 ${repLow}회 리셋`
-      : `지난주 마지막 세트 여유(RPE ${lastRpe}) 감지 → 조기 ${gainText}`) + jumpNote;
+      ? `전 세트 ${effectiveRepHigh}회 → ${gainText} · ${repLow}회`
+      : `지난주 여유(RPE ${lastRpe}) → ${gainText}`) + jumpNote;
 
     return {
       action: 'increase_load',
@@ -714,8 +714,8 @@ export function recommend(
     sets,
     restSeconds,
     reason: (assisted
-      ? `이중 진행: 보조 ${workingWeight}kg 유지, 세트당 +1회 추가 도전 (목표: ${effectiveRepHigh}회)`
-      : `이중 진행: ${workingWeight}kg 유지, 세트당 +1회 추가 도전 (목표: ${effectiveRepHigh}회)`) + jumpNote,
+      ? `보조 ${workingWeight}kg 유지 · 세트당 +1회 (목표 ${effectiveRepHigh}회)`
+      : `${workingWeight}kg 유지 · 세트당 +1회 (목표 ${effectiveRepHigh}회)`) + jumpNote,
     stalled,
     basis
   };
@@ -782,8 +782,8 @@ export function adjustRemaining(
       ...s,
       weightKg: adjusted,
       recommendationReason: assisted
-        ? `피로 누적 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 부하 -10%(${phrase(currentWeight, adjusted)}) 교정`
-        : `피로 누적 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 -10%(${currentWeight}→${adjusted}kg) 교정`
+        ? `힘들었음 → 부하 -10% ${phrase(currentWeight, adjusted)}`
+        : `힘들었음 → -10% ${currentWeight}→${adjusted}kg`
     }));
   }
 
@@ -795,8 +795,8 @@ export function adjustRemaining(
       ...s,
       weightKg: adjusted,
       recommendationReason: assisted
-        ? `높은 여유도 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 부하 +5%(${phrase(currentWeight, adjusted)}) 교정`
-        : `높은 여유도 감지(RPE ${actualRpe} vs 목표 ${targetRpe}) → 남은 세트 +5%(${currentWeight}→${adjusted}kg) 교정`
+        ? `여유 있었음 → 부하 +5% ${phrase(currentWeight, adjusted)}`
+        : `여유 있었음 → +5% ${currentWeight}→${adjusted}kg`
     }));
   }
 

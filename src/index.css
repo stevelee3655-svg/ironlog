@@ -53,81 +53,48 @@
   --font-heading: 'Jost', 'Noto Sans KR', sans-serif;
 }
 
-/* 2. Stripe
- *
- * 값은 전부 `OneDrive/awesome-design-md/design-md/stripe/DESIGN.md`에서 그대로 옮겼다.
- * 눈대중으로 인디고 계열을 맞추면 안 된다 — 예전 판이 그랬고, 명세에 없는 회색
- * (#cbd5e1 · #94a3b8 · #f8fafc 등)이 섞여 있었다. 여기 있는 색은 하나도 지어내지 않았다.
- *
- * 이 시스템의 정체성 셋:
- *   1) 인디고(#533afd)는 **한 화면에 채워진 버튼 하나**로만 쓴다.
- *   2) 본문 글자는 **두께 300**, 큰 글자에는 **음수 자간**. 두껍게 하면 이 브랜드가 아니다.
- *   3) 숫자가 든 칸은 **tnum**(고정폭 숫자) — 금융 데이터를 다루는 티를 여기서 낸다.
- */
+/* 2. Stripe (Electric Indigo Fintech) */
 [data-theme="stripe"] {
-  /* Brand & Accent */
-  --primary: #533afd;
-  --primary-deep: #4434d4;
-  --primary-press: #2e2b8c;
-  --primary-soft: #665efd;
-  --primary-subdued: #b9b9f9;
-  --brand-dark-900: #1c1e54;
-  --ruby: #ea2261;
-  --magenta: #f96bee;
-  --lemon: #9b6829;
-  /* Surface */
-  --canvas-bg: #ffffff;
-  --canvas-soft: #f6f9fc;
-  --canvas-cream: #f5e9d4;
-  --hairline: #e3e8ee;
-  --hairline-input: #a8c3de;
-  /* Text */
+  --canvas-bg: #f6f9fc;
   --canvas-text: #0d253d;
-  --ink-secondary: #273951;
-  --subdued-text: #64748d;
-
-  /* 앱이 쓰는 이름으로 잇는다 */
   --card-bg: #ffffff;
   --card-border: #e3e8ee;
-  --card-soft-bg: #f6f9fc;
+  --card-soft-bg: #f0f4f9;
+  --subdued-text: #64748d;
   --primary-btn-bg: #533afd;
   --primary-btn-text: #ffffff;
-  --primary-btn-hover: #2e2b8c;
+  --primary-btn-hover: #4434d4;
   --secondary-btn-bg: #ffffff;
   --secondary-btn-border: #e3e8ee;
-  --secondary-btn-text: #533afd;
-  --input-bg: #ffffff;
-  --input-border: #a8c3de;
+  --secondary-btn-text: #0d253d;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
   --input-text: #0d253d;
   --input-focus-ring: #533afd;
   --check-btn-active-bg: #533afd;
   --check-btn-active-text: #ffffff;
   --check-btn-active-border: #533afd;
   --check-btn-inactive-bg: #ffffff;
-  --check-btn-inactive-border: #a8c3de;
-  --check-btn-inactive-text: #64748d;
-  --header-bg: rgba(255, 255, 255, 0.92);
+  --check-btn-inactive-border: #cbd5e1;
+  --check-btn-inactive-text: #94a3b8;
+  --header-bg: rgba(246, 249, 252, 0.92);
   --header-border: #e3e8ee;
   --nav-bg: rgba(255, 255, 255, 0.95);
   --nav-border: #e3e8ee;
-  --accent-pill-bg: #b9b9f9;
-  --accent-pill-text: #4434d4;
-  /* 명세에 오류색이 따로 없다("error/success는 대시보드 제품 UI에만 있다").
-     루비는 그라디언트 강조색이지 버튼색이 아니므로, 경고는 루비를 옅게 깐 바탕에 잉크로 쓴다. */
-  --warn-bg: #fdeaf0;
-  --warn-text: #0d253d;
+  --accent-pill-bg: #533afd;
+  --accent-pill-text: #ffffff;
+  --warn-bg: #fff1f0;
+  --warn-text: #8c1d18;
   --row-fill: #533afd;
   --row-fill-text: #ffffff;
   --row-now-ring: #533afd;
-  --row-todo-text: #64748d;
-  --row-todo-border: #e3e8ee;
-  --gauge-track-bg: #f6f9fc;
+  --row-todo-text: #6b7689;
+  --row-todo-border: #e3ddff;
+  --gauge-track-bg: #eaeff6;
   --gauge-zone-bg: #533afd;
   --gauge-zone-text: #ffffff;
-  /* 죄네(Söhne)는 유료 서체다. 명세가 지정한 공개 대체 서체가 Inter 300이다.
-     명세는 system-ui로 떨어지는 것을 **명시적으로 금지한다**("브랜드에 비해 두껍다"). */
-  --font-family: 'Inter', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-  --font-heading: 'Inter', 'Noto Sans KR', sans-serif;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
 }
 
 /* 3. SpaceX (Cockpit Stealth Black & Laser Cyan) */
@@ -239,108 +206,6 @@ body {
    SpaceX의 각진 서체도 Claude의 세리프도 화면에 나타나지 않는다. */
 h1, h2, h3 {
   font-family: var(--font-heading);
-}
-
-/* ── Stripe 타이포그래피 ─────────────────────────────────────────────
- *
- * 색만 바꾸면 이 브랜드가 되지 않는다. 명세가 스스로 이렇게 못 박는다.
- *
- *   "Thin weight is the brand. Display tiers always render at weight 300.
- *    Bumping to 400+ removes the brand's editorial air."
- *
- * 그런데 이 앱은 화면 전체가 font-bold(700)로 짜여 있다. 그래서 스트라이프 테마일
- * 때만 두께와 자간을 명세 값으로 되돌린다. 다른 테마(나이키·스페이스X·클로드)는
- * 그대로 두꺼운 채로 둔다 — 그쪽은 그게 맞다.
- *
- * 크기별 자간은 명세의 표를 그대로 옮겼다(56px에서 -1.4px, 20px에서 -0.2px).
- */
-[data-theme="stripe"] body,
-[data-theme="stripe"] input,
-[data-theme="stripe"] textarea,
-[data-theme="stripe"] button {
-  /* ss01은 스트라이프 서체의 대체 글자꼴(외겹 a 등)을 켜는 스타일 세트다.
-     명세가 "body에 걸어 모든 글자 역할에 적용하라"고 지정한다. */
-  font-feature-settings: 'ss01';
-  font-weight: 300;
-}
-
-/* 제목 계열 — 두께 300 + 크기에 비례하는 음수 자간 */
-[data-theme="stripe"] h1,
-[data-theme="stripe"] h2,
-[data-theme="stripe"] .text-3xl,
-[data-theme="stripe"] .text-2xl {
-  font-weight: 300;
-  letter-spacing: -0.04em;
-}
-[data-theme="stripe"] h3,
-[data-theme="stripe"] .text-xl,
-[data-theme="stripe"] .text-lg {
-  font-weight: 300;
-  letter-spacing: -0.01em;
-}
-
-/* 본문·굵게 지정된 곳 — 명세의 본문 두께는 300이다.
-   Tailwind의 .font-bold(700)를 테마 안에서만 눌러 준다. */
-[data-theme="stripe"] .font-bold,
-[data-theme="stripe"] .font-semibold,
-[data-theme="stripe"] .font-medium {
-  font-weight: 300;
-}
-
-/* 예외 — 버튼 글자와 **아주 작은** 대문자 라벨만 400이다(명세의 button-md / micro-cap).
-   여기서 .uppercase 전체를 400으로 올리면 안 된다 — 「앱 설정」 같은 큰 대문자 제목까지
-   두꺼워져서 이 브랜드의 얇은 제목이 사라진다. 실제로 한 번 그렇게 됐다.
-   그래서 10~12px 라벨에만 건다. */
-[data-theme="stripe"] button,
-[data-theme="stripe"] .nike-btn-primary,
-[data-theme="stripe"] .nike-btn-secondary,
-[data-theme="stripe"] .uppercase[class*="text-[10px]"],
-[data-theme="stripe"] .uppercase[class*="text-[11px]"],
-[data-theme="stripe"] .uppercase.text-xs {
-  font-weight: 400;
-}
-
-/* 큰 제목은 대문자여도 두께 300을 지킨다. 위 규칙보다 뒤에 두어 확실히 이긴다. */
-[data-theme="stripe"] h1,
-[data-theme="stripe"] h2,
-[data-theme="stripe"] h3 {
-  font-weight: 300;
-}
-
-/* 숫자가 든 칸은 고정폭 숫자(tnum)로. 무게·횟수·볼륨이 자리마다 흔들리지 않는다.
-   명세: "Any cell rendering currency, transaction amounts, or numeric counts
-   uses font-feature-settings: 'tnum' plus a tightening tracking." */
-[data-theme="stripe"] .font-mono,
-[data-theme="stripe"] input[type='number'] {
-  font-family: var(--font-family);
-  font-feature-settings: 'tnum';
-  letter-spacing: -0.03em;
-}
-
-/* 채워진 인디고 버튼은 알약 모양에 8px 16px 여백 — 명세의 button-primary-pill. */
-[data-theme="stripe"] .nike-btn-primary {
-  border-radius: 9999px;
-  box-shadow: none;
-}
-[data-theme="stripe"] .nike-btn-primary:active {
-  background: var(--primary-press);
-}
-
-/* 이 브랜드에서 가장 먼저 알아보는 것은 **위쪽 3분의 1을 가로지르는 그라디언트 띠**다.
-   크림 → 셔벗 → 라벤더 → 인디고 → 루비 순으로 눕힌다(명세 Overview).
-   화면 맨 위에 깔고 아래로 흰 캔버스에 녹인다. */
-[data-theme="stripe"] .stripe-mesh {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 55%, #ffffff 100%),
-    linear-gradient(
-      100deg,
-      #f5e9d4 0%,
-      #9b6829 14%,
-      #f96bee 38%,
-      #665efd 58%,
-      #533afd 76%,
-      #ea2261 100%
-    );
 }
 
 input, textarea, pre, code {

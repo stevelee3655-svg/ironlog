@@ -116,7 +116,7 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       const rec = recommend(mockSecondaryEx, []);
       expect(rec.action).toBe('first_time');
       expect(rec.sets[0].reps).toBe(8);
-      expect(rec.reason).toContain('하단 횟수');
+      expect(rec.reason).toContain('8회');
     });
 
     it('Rule 6 (상단 도달): 50kg x 12/12/12 -> increase_load, 52.5kg x 8', () => {
@@ -129,7 +129,8 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       expect(rec.action).toBe('increase_load');
       expect(rec.sets[0].weightKg).toBe(52.5);
       expect(rec.sets[0].reps).toBe(8);
-      expect(rec.reason).toContain('+2.5kg 증량');
+      expect(rec.reason).toContain('+2.5kg');
+      expect(rec.reason).toContain('50→52.5kg');
     });
 
     it('Rule 7 (상단 미달): 50kg x 10/10/9 -> increase_reps, 50kg, reps [11, 11, 10]', () => {
@@ -154,7 +155,7 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       expect(rec.action).toBe('hold');
       expect(rec.sets[0].weightKg).toBe(50);
       expect(rec.sets[0].reps).toBe(8);
-      expect(rec.reason).toContain('하단 횟수');
+      expect(rec.reason).toContain('8회');
     });
 
     it('Rule 6 (너무 쉬움): 50kg x 9/9/9, last RPE 6 -> increase_load', () => {
@@ -178,7 +179,7 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       const rec = recommend(mockSecondaryEx, history);
       expect(rec.action).toBe('back_off');
       expect(rec.sets[0].weightKg).toBe(45); // -10%
-      expect(rec.reason).toContain('과도한 피로');
+      expect(rec.reason).toContain('50→45kg');
     });
 
     it('큰 점프(20% > 15%): 막지 않고 증량을 추천하되 사유에 경고를 붙인다', () => {
@@ -227,7 +228,7 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       expect(rec.sets[0].weightKg).toBe(12);
       expect(rec.sets.map(s => s.reps)).toEqual([10, 10, 10]);
       expect(rec.reason).toContain('20%');
-      expect(rec.reason).toContain('횟수를 더 쌓아도 됩니다');
+      expect(rec.reason).toContain('횟수부터');
       // 목표 상한을 몰래 늘리지 않는다 — 그것도 결국 강제가 된다.
       expect(rec.reason).not.toContain('18회');
     });
@@ -378,7 +379,7 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       // Target was 7, actual was 9 -> diff = +2
       const adjusted = adjustRemaining(mockEx, completed, 7, remaining);
       expect(adjusted[0].weightKg).toBe(72.5); // 80 * 0.9 = 72.5
-      expect(adjusted[0].recommendationReason).toContain('피로 누적');
+      expect(adjusted[0].recommendationReason).toContain('80→72.5kg');
     });
 
     it('should increase weight by 5% when set was 2+ RPE easier than target', () => {
@@ -389,7 +390,7 @@ describe('Jeff Nippard Muscle Ladder Progression Engine', () => {
       // Target was 8, actual was 6 -> diff = -2
       const adjusted = adjustRemaining(mockEx, completed, 8, remaining);
       expect(adjusted[0].weightKg).toBe(85); // 80 * 1.05 = 84 -> round to 2.5 is 85
-      expect(adjusted[0].recommendationReason).toContain('높은 여유도');
+      expect(adjusted[0].recommendationReason).toContain('80→85kg');
     });
   });
 });
