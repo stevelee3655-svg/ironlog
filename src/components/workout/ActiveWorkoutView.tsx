@@ -79,15 +79,20 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             color: 'var(--canvas-text)'
           }}
         >
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            오늘의 운동
-          </h1>
+          <div className="space-y-1">
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              오늘의 운동
+            </h1>
+            <p className="text-xs opacity-70 leading-relaxed font-normal">
+              지난 기록과 방금 세트의 체감 난이도를 보고 다음 무게와 횟수를 정해준다.
+            </p>
+          </div>
 
           <button
             onClick={() => startEmptySession('자유 운동')}
-            className="nike-btn-primary w-full active:scale-95"
+            className="nike-btn-primary w-full shadow active:scale-95"
           >
-            <span>바로 시작</span>
+            <span>운동 바로 시작하기</span>
           </button>
         </div>
 
@@ -98,14 +103,13 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             style={{ borderColor: 'var(--card-border)' }}
           >
             <h2 className="text-xs font-bold uppercase tracking-wider opacity-80">
-              루틴
+              내 루틴 ({routines.length})
             </h2>
             <button
               onClick={onNavigateToRoutines}
               className="text-xs font-semibold hover:opacity-100 opacity-60 flex items-center transition-colors"
-              aria-label="루틴 관리"
             >
-              <span>관리</span>
+              <span>루틴 관리</span>
               <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
             </button>
           </div>
@@ -121,16 +125,12 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                     borderColor: 'var(--card-border)' 
                   }}
                 >
-                  {/* 부위를 여섯 개씩 나열하면 두 줄로 넘쳐서 카드가 지저분해진다.
-                      앞의 셋만 보이고 나머지는 숫자로 접는다. min-w-0이 없으면
-                      이 칸이 버튼 자리를 밀어내 「시작」이 두 줄로 찌그러진다. */}
+                  {/* 부위가 많은 날은 이 글이 길어진다. min-w-0을 안 주면 이 칸이
+                      버튼 자리를 밀어내서 「시작」이 두 줄로 찌그러진다. */}
                   <div className="space-y-0.5 min-w-0 pr-3">
-                    <h3 className="font-bold text-base truncate">{rt.name}</h3>
-                    <p className="text-xs opacity-60 font-medium truncate">
-                      {rt.targetMuscles.slice(0, 3).join(' · ')}
-                      {rt.targetMuscles.length > 3 ? ' +' + (rt.targetMuscles.length - 3) : ''}
-                      {' · '}
-                      {rt.exerciseIds.length}
+                    <h3 className="font-bold text-base">{rt.name}</h3>
+                    <p className="text-xs opacity-60 font-medium">
+                      {rt.targetMuscles.join(' · ')} &nbsp;·&nbsp; {rt.exerciseIds.length}개 종목
                     </p>
                   </div>
 
@@ -152,11 +152,12 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
               className="p-8 rounded-2xl border border-dashed text-center space-y-2"
               style={{ borderColor: 'var(--card-border)' }}
             >
+              <p className="text-xs opacity-50">등록된 루틴이 없습니다.</p>
               <button
                 onClick={onNavigateToRoutines}
                 className="text-xs font-bold underline underline-offset-4"
               >
-                + 루틴 만들기
+                + 새 루틴 만들기
               </button>
             </div>
           )}
@@ -170,14 +171,19 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             borderColor: 'var(--card-border)' 
           }}
         >
-          <div className="text-xs font-bold">
-            종목 <span className="opacity-50 font-normal">{exercises.length}</span>
+          <div>
+            <div className="text-xs font-bold">
+              운동 종목 목록
+            </div>
+            <div className="text-xs opacity-60">
+              {exercises.length}개 종목 등록됨
+            </div>
           </div>
           <button
             onClick={onNavigateToExercises}
             className="nike-btn-outline h-8 px-3.5 text-xs font-bold"
           >
-            관리
+            종목 관리
           </button>
         </div>
 
@@ -311,12 +317,11 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           className="flex items-center justify-between text-xs pt-1 border-t"
           style={{ borderColor: 'var(--card-border)' }}
         >
-          <span className="font-bold font-mono">
-            {activeSession.totalVolumeKg.toLocaleString()}
-            <span className="opacity-40 font-normal"> kg</span>
+          <span className="font-bold">
+            총 볼륨 {activeSession.totalVolumeKg.toLocaleString()} kg
           </span>
-          <span className="font-semibold opacity-70 font-mono">
-            {completedSetsCount}<span className="opacity-40"> / {totalPlannedSets}</span>
+          <span className="font-semibold opacity-70">
+            완료 {completedSetsCount} / {totalPlannedSets} 세트 ({progressPercent}%)
           </span>
         </div>
 
@@ -407,7 +412,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                     */}
                     {se.isAssisted && (
                       <div className="text-[11px] font-bold mt-0.5" style={{ color: 'var(--row-now-ring)' }}>
-                        숫자 ↑ = 쉬워짐
+                        도와주는 기구 — 숫자가 클수록 쉬워집니다
                       </div>
                     )}
                     <div className="text-xs text-[#707072] dark:text-[#a1a1aa] font-medium mt-0.5">
@@ -449,9 +454,13 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                       className="rounded-xl border p-3 space-y-2"
                       style={{ background: 'var(--card-soft-bg)', borderColor: 'var(--card-border)' }}
                     >
+                      <div className="text-xs font-bold">무엇으로 바꿀까</div>
+                      <p className="text-[11px] opacity-70 leading-relaxed">
+                        같은 부위를 같은 방식으로 때리는 순서로 골랐다.
+                      </p>
                       {candidates.length === 0 ? (
                         <p className="text-[11px] opacity-60">
-                          바꿀 종목이 없다.
+                          {se.muscleGroup}에 바꿔 넣을 다른 종목이 없다.
                         </p>
                       ) : (
                         <div className="max-h-56 overflow-y-auto space-y-1 -mx-1 px-1">
@@ -691,6 +700,17 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                   })}
                 </div>
 
+                {/* 몇 개 채웠는지 한 줄로. 색 기준은 채움 여부라 따로 설명이 필요 없다. */}
+                <div className="flex items-center pt-0.5 text-[11px] font-semibold tracking-wide"
+                     style={{ color: 'var(--subdued-text)' }}>
+                  <span>
+                    <b style={{ color: 'var(--canvas-text)' }}>
+                      {se.sets.filter(s => s.isCompleted).length}
+                    </b>
+                    {' / '}{se.sets.length} 세트 채움
+                  </span>
+                </div>
+
                 {/* Add Set Button */}
                 <div className="pt-0.5 flex space-x-2">
                   <button
@@ -698,7 +718,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                     className="flex-1 py-1.5 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 text-xs font-semibold opacity-70 hover:opacity-100 transition-all flex items-center justify-center space-x-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>세트</span>
+                    <span>세트 추가</span>
                   </button>
                   {/*
                     세트를 뺄 방법이 아예 없었다 — 스토어에는 지우는 기능이 있는데

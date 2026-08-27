@@ -35,11 +35,14 @@ export const RirGauge: React.FC<RirGaugeProps> = ({
   const caretAt = mode === 'record' ? picked : targetRir;
   const caretLabel = mode === 'record' ? '내 기록' : '목표';
 
-  // 문장이 아니라 라벨로 쓴다. 눈금과 화살표가 이미 뜻을 말하고 있어서
-  // 설명을 덧붙이면 매번 같은 문장을 읽게 된다.
-  const headline = mode === 'record' ? '몇 개 남았어?' : '남길 개수';
+  const headline =
+    mode === 'record'
+      ? '방금 세트, 몇 개 더 할 수 있었어?'
+      : targetRir === 0
+      ? '더 못 할 때까지 — 마지막 세트'
+      : `${targetRir}개 더 할 수 있을 때 멈춰`;
 
-  const subLabel = mode === 'record' ? '' : `${setNumber}세트`;
+  const subLabel = mode === 'record' ? '눌러서 기록' : `${setNumber}세트 목표`;
 
   return (
     <div className="gauge-container mt-5 select-none">
@@ -137,12 +140,27 @@ export const RirGauge: React.FC<RirGaugeProps> = ({
         )}
       </div>
 
+      {/* 양 끝이 무슨 뜻인지 */}
+      <div
+        className="flex justify-between mt-3 text-[10px] font-semibold tracking-wide"
+        style={{ color: 'var(--subdued-text)' }}
+      >
+        <span>0 · 한 개도 더 못 함</span>
+        <span>4+ · 아직 넉넉함</span>
+      </div>
+
       {/* 조정 결과 또는 추천 근거 */}
       {adjustmentNotice && (
         <div
           className="mt-3.5 pt-3 text-xs leading-relaxed animate-check-pop"
           style={{ borderTop: '1px solid var(--card-border)' }}
         >
+          <div
+            className="text-[10px] uppercase font-bold tracking-widest mb-1"
+            style={{ color: 'var(--subdued-text)' }}
+          >
+            남은 세트 자동 조정됨
+          </div>
           <div
             className="text-sm font-semibold tracking-tight"
             style={{

@@ -186,12 +186,18 @@ export const SettingsView: React.FC = () => {
       >
         <div className="flex items-center space-x-2 border-b pb-2.5" style={{ borderColor: 'var(--card-border)' }}>
           <Scale className="w-4 h-4 opacity-70" />
-          <h3 className="font-bold text-base">체중</h3>
+          <h3 className="font-bold text-base">내 몸</h3>
         </div>
 
         <div className="flex items-center justify-between">
-          {/* 이 값이 어디 쓰이는지는 한 줄이면 된다. 매일 읽을 글이 아니다. */}
-          <p className="text-[11px] opacity-60 pr-3">어시스트 기구 계산에 쓴다</p>
+          <div className="pr-3">
+            <p className="font-bold text-xs">체중</p>
+            <p className="text-[11px] opacity-60 leading-relaxed">
+              어시스트 풀업처럼 <b>몸을 들어 올려 주는 기구</b>에서, 실제로 내가 든 무게를
+              재는 데 씁니다. 그런 기구를 안 쓰면 아무 데도 영향이 없고, 자주 고치지 않아도
+              기록끼리 비교하는 데는 지장이 없습니다.
+            </p>
+          </div>
           <div className="flex items-center space-x-1.5 shrink-0">
             <input
               type="number"
@@ -234,7 +240,7 @@ export const SettingsView: React.FC = () => {
         <div className="flex items-center space-x-2 border-b pb-2.5" style={{ borderColor: 'var(--card-border)' }}>
           <Palette className="w-4 h-4 opacity-70" />
           <h3 className="font-bold text-base">
-            테마
+            디자인 테마 선택
           </h3>
         </div>
 
@@ -270,6 +276,7 @@ export const SettingsView: React.FC = () => {
 
                 <div>
                   <h4 className="font-bold text-sm leading-tight">{th.name}</h4>
+                  <p className="text-[10px] opacity-70 pt-0.5 leading-tight">{th.desc}</p>
                 </div>
               </button>
             );
@@ -380,7 +387,7 @@ export const SettingsView: React.FC = () => {
           className="font-bold text-base border-b pb-2"
           style={{ borderColor: 'var(--card-border)' }}
         >
-          타이머
+          휴식 타이머 & 알림
         </h3>
 
         <div 
@@ -390,7 +397,8 @@ export const SettingsView: React.FC = () => {
           {/* Auto Start */}
           <div className="flex items-center justify-between pt-1">
             <div>
-              <p className="font-bold">타이머 자동 시작</p>
+              <p className="font-bold">세트 완료 시 타이머 자동 시작</p>
+              <p className="text-[11px] opacity-60">체크를 누르면 휴식 시간 자동 카운트다운</p>
             </div>
             <input
               type="checkbox"
@@ -403,7 +411,8 @@ export const SettingsView: React.FC = () => {
           {/* Default Rest */}
           <div className="flex items-center justify-between pt-3.5">
             <div>
-              <p className="font-bold">기본 휴식</p>
+              <p className="font-bold">기본 휴식 시간</p>
+              <p className="text-[11px] opacity-60">운동별 지정이 없을 때 기본 적용</p>
             </div>
             <div className="flex space-x-1.5">
               {[60, 90, 150, 210].map(sec => {
@@ -429,7 +438,8 @@ export const SettingsView: React.FC = () => {
           {/* Sound */}
           <div className="flex items-center justify-between pt-3.5">
             <div>
-              <p className="font-bold">소리</p>
+              <p className="font-bold">사운드 효과</p>
+              <p className="text-[11px] opacity-60">타이머 종료 및 세트 완료 사운드</p>
             </div>
             <input
               type="checkbox"
@@ -443,6 +453,7 @@ export const SettingsView: React.FC = () => {
           <div className="flex items-center justify-between pt-3.5">
             <div>
               <p className="font-bold">햅틱 진동</p>
+              <p className="text-[11px] opacity-60">모바일 진동 알림</p>
             </div>
             <input
               type="checkbox"
@@ -455,7 +466,8 @@ export const SettingsView: React.FC = () => {
           {/* Auto Sync on Finish */}
           <div className="flex items-center justify-between pt-3.5">
             <div>
-              <p className="font-bold">완료 시 자동 전송</p>
+              <p className="font-bold">운동 완료 시 자동 전송</p>
+              <p className="text-[11px] opacity-60">완료 버튼을 누르면 구글 드라이브로 즉시 전송</p>
             </div>
             <input
               type="checkbox"
@@ -476,7 +488,7 @@ export const SettingsView: React.FC = () => {
         }}
       >
         <h3 className="font-bold text-base">
-          백업
+          데이터 백업 & 복원
         </h3>
 
         <div className="grid grid-cols-2 gap-2.5">
@@ -504,6 +516,7 @@ export const SettingsView: React.FC = () => {
       {/* Footer */}
       <div className="text-center text-xs opacity-50 space-y-0.5 pt-2">
         <p className="font-bold">IronLog</p>
+        <p className="text-[11px]">The Muscle Ladder Intelligence Edition</p>
       </div>
 
       {isScriptModalOpen && (

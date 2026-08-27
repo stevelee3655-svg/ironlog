@@ -312,14 +312,14 @@ function buildAdjustmentNotice(args: {
     return {
       setId,
       type: 'increase',
-      text: `${label} · 목표 ${targetRir}개, 실제 ${fmtRir(actualRir)}`
+      text: `남은 세트 ${label} · ${targetRir}개 남기는 게 목표였는데 ${fmtRir(actualRir)} 남았어 — 가볍다는 뜻이야.`
     };
   }
   if (loadDiff < 0) {
     return {
       setId,
       type: 'decrease',
-      text: `${label} · 목표 ${targetRir}개, 실제 ${fmtRir(actualRir)}`
+      text: `남은 세트 ${label} · ${targetRir}개 남기는 게 목표였는데 ${fmtRir(actualRir)} 남았어 — 이대로면 남은 세트를 못 채워.`
     };
   }
 
@@ -329,13 +329,13 @@ function buildAdjustmentNotice(args: {
     return {
       setId,
       type: 'neutral',
-      text: `${stayLabel} 유지 · 목표와 ${gap === 0 ? '일치' : '1개 차이'}`
+      text: `목표(${targetRir}개 남기기)와 ${gap === 0 ? '정확히 같아' : '1개 차이야'} — ${isAssisted ? '보조' : '무게'} 선택이 적절했다는 뜻이라 ${stayLabel} 그대로 간다.`
     };
   }
   return {
     setId,
     type: 'neutral',
-    text: `${stayLabel} 유지 · 조절 단위 ${fmtKg(incrementKg)}kg으로는 한 칸도 못 움직임`
+    text: `목표보다 ${Math.abs(gap)}개 ${gap > 0 ? '더 남았지만' : '모자랐지만'} 이 기구의 조절 단위가 ${fmtKg(incrementKg)}kg이라 5% 조정으로는 한 칸도 못 움직여 — ${stayLabel} 그대로 둔다.`
   };
 }
 
