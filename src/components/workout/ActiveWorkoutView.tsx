@@ -7,12 +7,14 @@ import {
   X, 
   ShieldAlert,
   Flame,
-  Repeat2
+  Repeat2,
+  Minus
 } from 'lucide-react';
 import { useWorkoutStore } from '../../store/useWorkoutStore';
 import { WorkoutSession, MUSCLE_GROUPS } from '../../types/workout';
 import { WorkoutSummaryModal } from './WorkoutSummaryModal';
 import { RirGauge } from './RirGauge';
+import { SessionStopwatch } from './SessionStopwatch';
 import { TIER_LABEL, substitutionCandidates } from '../../utils/progression';
 
 interface ActiveWorkoutViewProps {
@@ -47,7 +49,6 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const cancelActiveSession = useWorkoutStore(state => state.cancelActiveSession);
 
   // Local state
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
   const [pickerFilter, setPickerFilter] = useState<string>('전체');
   const [finishedSession, setFinishedSession] = useState<WorkoutSession | null>(null);
@@ -57,35 +58,6 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   const [focusedSetMap, setFocusedSetMap] = useState<Record<string, string>>({}); // exerciseId -> active setId
   // 대체 창을 연 세션 종목의 id. 기구를 남이 쓰고 있을 때 그 자리에서 바꾼다.
   const [substituteFor, setSubstituteFor] = useState<string | null>(null);
-
-  // Elapsed stopwatch timer (drift-free timestamp diff)
-  useEffect(() => {
-    if (!activeSession) {
-      setElapsedSeconds(0);
-      return;
-    }
-
-    const calcElapsed = () => {
-      const startMs = new Date(activeSession.startTime).getTime();
-      const nowMs = Date.now();
-      const sec = Math.max(0, Math.floor((nowMs - startMs) / 1000));
-      setElapsedSeconds(sec);
-    };
-
-    calcElapsed();
-    const interval = setInterval(calcElapsed, 1000);
-    return () => clearInterval(interval);
-  }, [activeSession?.startTime]);
-
-  const formatElapsed = (totalSecs: number) => {
-    const hrs = Math.floor(totalSecs / 3600);
-    const mins = Math.floor((totalSecs % 3600) / 60);
-    const secs = totalSecs % 60;
-    if (hrs > 0) {
-      return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    }
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
 
   const handleFinish = () => {
     const completed = finishActiveSession();
@@ -293,7 +265,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         {/* Stopwatch Timer & Title */}
         <div className="flex items-baseline justify-between pt-0.5">
           <div className="text-5xl font-bold tracking-tight leading-none select-none font-mono">
-            {formatElapsed(elapsedSeconds)}
+            <SessionStopwatch startTime={activeSession.startTime} />
           </div>
 
           {/* Session Title */}
@@ -577,7 +549,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                               toggleSetCompleted(se.id, set.id);
                               setFocusedSetMap(prev => ({ ...prev, [se.id]: set.id }));
                             }}
-                            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 relative after:absolute after:-inset-2 after:content-['']"
                             style={
                               isChecked
                                 ? { background: 'rgba(255,255,255,0.22)', color: 'var(--row-fill-text)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.45)' }
@@ -641,11 +613,18 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                             value={set.weightKg === undefined || isNaN(set.weightKg) ? '' : set.weightKg}
                             onClick={e => e.stopPropagation()}
                             onChange={e => {
-                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                              updateSet(se.id, set.id, { weightKg: isNaN(val) ? 0 : val });
+                              // 빈칸을 0으로 바꾸면 백스페이스 한 번에 20kg이 0kg이 되고,
+                              // 그 0이 아래 미완료 세트로 전부 번진다. 빈칸은 빈칸으로 둔다.
+                              const raw = e.target.value;
+                              if (raw === '') {
+                                updateSet(se.id, set.id, { weightKg: undefined });
+                                return;
+                              }
+                              const val = parseFloat(raw);
+                              if (!isNaN(val)) updateSet(se.id, set.id, { weightKg: val });
                             }}
                             placeholder="0"
-                            className={`w-14 text-center text-sm font-bold font-mono py-1 rounded-lg focus:outline-none ${
+                            className={`w-14 text-center text-base font-bold font-mono py-1 rounded-lg focus:outline-none ${
                               isChecked
                                 ? 'bg-black/25 ring-1 ring-white/40'
                                 : 'bg-transparent border border-neutral-200 dark:border-neutral-700'
@@ -662,11 +641,17 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                             value={set.reps === undefined || isNaN(set.reps) ? '' : set.reps}
                             onClick={e => e.stopPropagation()}
                             onChange={e => {
-                              const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
-                              updateSet(se.id, set.id, { reps: isNaN(val) ? 0 : val });
+                              // 무게와 같은 이유 — 지우는 도중의 빈칸이 0으로 굳으면 안 된다.
+                              const raw = e.target.value;
+                              if (raw === '') {
+                                updateSet(se.id, set.id, { reps: undefined });
+                                return;
+                              }
+                              const val = parseInt(raw, 10);
+                              if (!isNaN(val)) updateSet(se.id, set.id, { reps: val });
                             }}
                             placeholder="0"
-                            className={`w-11 text-center text-sm font-bold font-mono py-1 rounded-lg focus:outline-none ${
+                            className={`w-11 text-center text-base font-bold font-mono py-1 rounded-lg focus:outline-none ${
                               isChecked
                                 ? 'bg-black/25 ring-1 ring-white/40'
                                 : 'bg-transparent border border-neutral-200 dark:border-neutral-700'
@@ -689,7 +674,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                               toggleSetCompleted(se.id, set.id);
                               setFocusedSetMap(prev => ({ ...prev, [se.id]: set.id }));
                             }}
-                            className="w-7 h-7 rounded-full flex items-center justify-center"
+                            className="w-7 h-7 rounded-full flex items-center justify-center relative after:absolute after:-inset-2 after:content-['']"
                             style={
                               isChecked
                                 ? { background: 'rgba(255,255,255,0.22)', color: 'var(--row-fill-text)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.45)' }
@@ -724,6 +709,23 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                     <Plus className="w-3.5 h-3.5" />
                     <span>세트 추가</span>
                   </button>
+                  {/*
+                    세트를 뺄 방법이 아예 없었다 — 스토어에는 지우는 기능이 있는데
+                    화면에 버튼이 없었다. 오늘 3세트 중 2세트만 하기로 하는 일은 흔하다.
+                    이미 한 세트는 못 지운다(기록이니까). 그래서 안 한 세트가 있을 때만 뜬다.
+                  */}
+                  {se.sets.some(x => !x.isCompleted) && (
+                    <button
+                      onClick={() => {
+                        const last = [...se.sets].reverse().find(x => !x.isCompleted);
+                        if (last) removeSetFromExercise(se.id, last.id);
+                      }}
+                      aria-label="마지막 세트 빼기"
+                      className="w-12 py-1.5 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700 text-xs font-semibold opacity-70 hover:opacity-100 transition-all flex items-center justify-center"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Interactive RIR Gauge for Active Set (유산소에는 RIR 개념이 없다) */}
@@ -796,7 +798,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
         </button>
 
         <button
-          onClick={() => setIsConfirmCancelOpen(false)}
+          onClick={() => setIsConfirmCancelOpen(true)}
           className="w-full text-center text-xs font-semibold opacity-40 hover:text-red-500 transition-colors py-1"
         >
           운동 취소

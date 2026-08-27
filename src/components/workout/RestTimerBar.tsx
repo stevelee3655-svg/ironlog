@@ -40,8 +40,11 @@ export const RestTimerBar: React.FC = () => {
   return (
     <aside 
       aria-label="휴식 타이머"
-      className="fixed bottom-16 left-0 right-0 z-40 backdrop-blur-xl border-t px-5 py-3 transition-all shadow-md"
+      className="fixed left-0 right-0 z-40 backdrop-blur-xl border-t px-5 py-3 transition-all shadow-md"
       style={{ 
+        // 하단 메뉴는 4rem + 홈 인디케이터 여백(safe-area)만큼 높다.
+        // 4rem만 띄우면 아이폰에서 타이머가 메뉴에 그만큼 가린다.
+        bottom: 'calc(4rem + var(--safe-bottom, 0px))',
         backgroundColor: 'var(--header-bg)', 
         borderColor: 'var(--header-border)',
         color: 'var(--canvas-text)'

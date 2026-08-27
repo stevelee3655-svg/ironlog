@@ -149,7 +149,8 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
             기본 휴식 시간
           </label>
           <div className="grid grid-cols-4 gap-1.5">
-            {[60, 90, 120, 180].map(sec => {
+            {/* 종목 관리·설정 화면과 같은 값으로 맞춘다. */}
+            {[60, 90, 150, 210].map(sec => {
               const isSelected = defaultRestSeconds === sec;
               return (
                 <button

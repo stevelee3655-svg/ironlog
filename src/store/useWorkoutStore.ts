@@ -526,6 +526,65 @@ function saveStateToStorage(state: Partial<WorkoutStoreState>) {
   }
 }
 
+/** 자동 재전송을 포기하기까지의 시도 횟수. 이후에는 손으로만 다시 보낸다. */
+const MAX_AUTO_SYNC_ATTEMPTS = 5;
+
+/**
+ * 백업 파일에 담을 내용. **저장 형식과 똑같아야 한다.**
+ *
+ * 예전 백업은 exercises·routines·history·settings만 담았다. 그래서 되돌리면
+ * `routinesSeeded`·`exercisesSeeded`·`equipmentRev` 표시가 통째로 빠진 상태가 되어,
+ * 앱이 "처음 켜는 것"으로 오인하고 **지웠던 기본 루틴 DAY 1~6과 기본 종목을 되살리고
+ * 증량 단위를 공장 값으로 되돌렸다.** 진행 중이던 운동(activeSession)도 사라졌다.
+ * (외부 검토 지적, 코드에서 확인 — 2026-08-27)
+ */
+export function buildBackupPayload(state: {
+  exercises: Exercise[];
+  routines: Routine[];
+  history: WorkoutSession[];
+  activeSession: WorkoutSession | null;
+  settings: AppSettings;
+  activeTimer: ActiveTimerState | null;
+}) {
+  return {
+    backupVersion: 2,
+    exportedAt: new Date().toISOString(),
+    exercises: state.exercises,
+    routines: state.routines,
+    history: state.history,
+    activeSession: state.activeSession,
+    settings: state.settings,
+    activeTimer: state.activeTimer ?? null,
+    equipmentRev: EQUIPMENT_REV,
+    routinesSeeded: true,
+    exercisesSeeded: true
+  };
+}
+
+/**
+ * 백업 파일을 저장소가 읽을 수 있는 형태로 되돌린다.
+ * 옛 백업(표시가 없는 것)도 받아 준다 — 그때는 표시를 여기서 채워 넣어서,
+ * 되돌린 직후에 지웠던 기본값이 되살아나지 않게 한다.
+ */
+export function normalizeBackup(data: any): string | null {
+  if (!data || typeof data !== 'object') return null;
+  if (!Array.isArray(data.exercises) || data.exercises.length === 0) return null;
+  const payload = {
+    exercises: data.exercises,
+    routines: Array.isArray(data.routines) ? data.routines : [],
+    history: Array.isArray(data.history) ? data.history : [],
+    activeSession: data.activeSession ?? null,
+    settings: data.settings ?? {},
+    activeTimer: data.activeTimer ?? null,
+    equipmentRev: typeof data.equipmentRev === 'number' ? data.equipmentRev : EQUIPMENT_REV,
+    routinesSeeded: data.routinesSeeded !== false,
+    exercisesSeeded: data.exercisesSeeded !== false
+  };
+  return JSON.stringify(payload);
+}
+
+export const BACKUP_STORAGE_KEY = STORAGE_KEY;
+
 const initial = loadInitialState();
 
 export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
@@ -1255,7 +1314,9 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
             ...s,
             syncStatus: status,
             syncedAt: status === 'synced' ? new Date().toISOString() : s.syncedAt,
-            syncError: error
+            syncError: error,
+            // 성공하면 시도 횟수를 초기화한다 — 다음에 실패하면 다시 몇 번은 시도해야 하니까.
+            syncAttempts: status === 'synced' ? 0 : (s.syncAttempts ?? 0) + 1
           };
         }
         return s;
@@ -1278,8 +1339,11 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
     const { history, settings, updateSessionSyncStatus } = get();
     if (!settings.gasWebhookUrl) return { sent: 0, failed: 0 };
 
+    // 계속 실패하는 기록을 앱 켤 때마다 다시 쏘지 않는다.
+    // 손으로 누르는 「다시 보내기」는 이 제한을 받지 않는다.
     const pending = history.filter(
-      s => s.syncStatus === 'pending' || s.syncStatus === 'failed'
+      s => (s.syncStatus === 'pending' || s.syncStatus === 'failed') &&
+           (s.syncAttempts ?? 0) < MAX_AUTO_SYNC_ATTEMPTS
     );
 
     let sent = 0;
@@ -1291,7 +1355,8 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
         session, 
         settings.gasWebhookUrl, 
         settings.gasSharedSecret, 
-        prev
+        prev,
+        history
       );
       if (res.success) {
         updateSessionSyncStatus(session.id, 'synced');

@@ -103,7 +103,11 @@ export async function syncWorkoutToGoogleDrive(
   session: WorkoutSession,
   webhookUrl: string,
   sharedSecret: string = '',
-  prevTops: Record<string, TopSet> = {}
+  prevTops: Record<string, TopSet> = {},
+  // 주간 볼륨은 그 주 **전체** 기록이 있어야 나온다. 이걸 안 넘기면
+  // 위키로 가는 파일 머리말의 week.sets_by_muscle이 오늘 한 번 운동한 것만
+  // 세어서, 매번 "볼륨이 한참 모자람"으로 왜곡된다. (외부 검토 지적, 2026-08-27)
+  history: WorkoutSession[] = []
 ): Promise<SyncResponse> {
   if (!webhookUrl || !webhookUrl.trim()) {
     return {
@@ -113,7 +117,7 @@ export async function syncWorkoutToGoogleDrive(
   }
 
   const filename = getWorkoutFilename(session);
-  const markdownContent = generateWorkoutMarkdown(session, prevTops);
+  const markdownContent = generateWorkoutMarkdown(session, prevTops, history);
 
   const payload = {
     action: 'save_workout',
@@ -143,10 +147,27 @@ export async function syncWorkoutToGoogleDrive(
       throw new Error(`HTTP 에러 발생 (${response.status} ${response.statusText})`);
     }
 
-    const resJson = await response.json().catch(async () => {
-      const text = await response.text();
-      return { success: true, message: text };
-    });
+    // fetch 응답 본문은 **한 번만** 읽을 수 있다. 예전에는 json()이 실패하면
+    // catch에서 text()를 다시 읽으려 해서 "body stream already read"가 터졌고,
+    // 그 예외가 진짜 실패 사유를 덮어써서 무엇이 잘못됐는지 알 수 없었다.
+    // 한 번 문자열로 받아 두고 거기서 파싱한다.
+    const rawText = await response.text();
+    let resJson: { success?: boolean; message?: string } | null = null;
+    try {
+      resJson = JSON.parse(rawText);
+    } catch {
+      resJson = null;
+    }
+
+    if (resJson === null) {
+      // JSON이 아니면 대개 구글 로그인 페이지나 오류 HTML이 돌아온 것이다.
+      // 200이라고 성공으로 치면 기록이 안 갔는데 갔다고 뜬다.
+      throw new Error(
+        '웹훅이 JSON이 아닌 응답을 돌려줬습니다. 배포 설정의 액세스 권한이 ' +
+        '[모든 사용자]인지 확인해 주세요. (받은 내용 앞부분: ' +
+        rawText.slice(0, 80).replace(/\s+/g, ' ') + ')'
+      );
+    }
 
     if (resJson.success === false) {
       throw new Error(resJson.message || 'Google Drive 저장 실패');

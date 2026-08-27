@@ -4,7 +4,13 @@ import {
   Download, 
   Upload 
 } from 'lucide-react';
-import { useWorkoutStore } from '../../store/useWorkoutStore';
+import {
+  useWorkoutStore,
+  buildBackupPayload,
+  normalizeBackup,
+  BACKUP_STORAGE_KEY
+} from '../../store/useWorkoutStore';
+import { localDateKey } from '../../utils/date';
 import { AppTheme } from '../../types/workout';
 import { testGasWebhookConnection } from '../../services/driveSync';
 import { GasScriptModal } from './GasScriptModal';
@@ -99,20 +105,15 @@ export const SettingsView: React.FC = () => {
   };
 
   const handleExportBackup = () => {
-    const backupData = {
-      version: '1.0',
-      exportedAt: new Date().toISOString(),
-      exercises,
-      routines,
-      history,
-      settings
-    };
+    // 백업 내용은 스토어가 만든다 — 여기서 모양을 흉내 내다가 필드가 빠지면
+    // 되돌렸을 때 지운 루틴이 되살아난다(실제로 그랬다).
+    const backupData = buildBackupPayload(useWorkoutStore.getState());
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `IronLog_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `IronLog_Backup_${localDateKey()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -127,10 +128,27 @@ export const SettingsView: React.FC = () => {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        if (confirm('백업 파일을 복원하시겠습니까?')) {
-          if (data.exercises) localStorage.setItem('ironlog_state_v1', JSON.stringify(data));
-          window.location.reload();
+        const normalized = normalizeBackup(data);
+        if (normalized === null) {
+          alert('올바르지 않은 백업 파일 형식입니다. (종목 목록을 찾지 못했습니다)');
+          return;
         }
+
+        // 되돌리기는 지금 기기의 기록을 통째로 갈아 끼운다. 무엇이 사라지는지
+        // 먼저 보여 주고 묻는다 — 되돌릴 방법이 없는 동작이기 때문이다.
+        const nowSessions = history.length;
+        const inSessions = Array.isArray(data.history) ? data.history.length : 0;
+        const when = typeof data.exportedAt === 'string' ? data.exportedAt.slice(0, 10) : '알 수 없음';
+        const ok = confirm(
+          '백업으로 되돌리면 지금 이 기기의 기록이 전부 사라지고 파일 내용으로 바뀝니다.\n\n' +
+          `  지금 이 기기: 운동 기록 ${nowSessions}건\n` +
+          `  백업 파일(${when}): 운동 기록 ${inSessions}건\n\n` +
+          '되돌릴 수 없습니다. 진행할까요?'
+        );
+        if (!ok) return;
+
+        localStorage.setItem(BACKUP_STORAGE_KEY, normalized);
+        window.location.reload();
       } catch {
         alert('올바르지 않은 백업 파일 형식입니다.');
       }

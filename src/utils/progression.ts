@@ -128,6 +128,33 @@ export function estimate1RM(weightKg: number, reps: number, rpe?: number): numbe
 /**
  * 주어진 증량 단위로 반올림
  */
+/**
+ * 비율로 조정한 무게를 증량 단위에 맞추되, **반올림 때문에 제자리에 머무는 것을 막는다.**
+ *
+ * 원래 코드는 `roundToIncrement(20 * 1.05, 5)`를 그대로 썼는데 이게 다시 20이 된다.
+ * 그런데도 화면에는 "+5%(20→20kg) 교정"이라고 떴다 — **아무 일도 안 일어났는데
+ * 일어난 것처럼 보이는 게 제일 나쁘다.** 감량 쪽도 똑같이 20→20이었다.
+ * 증량 단위가 큰 기구(5kg·9kg)에서 가벼운 무게를 쓸 때 항상 걸린다.
+ * (외부 검토 지적, 코드에서 양방향 모두 확인 — 2026-08-27)
+ *
+ * 그래서 비율 계산이 제자리면 최소 한 칸은 움직인다. 한 칸도 못 내려갈 만큼
+ * 가벼우면 그 자리에 둔다(0kg이나 음수로 내려가면 안 되니까).
+ */
+export function stepAtLeastOne(
+  current: number,
+  scaled: number,
+  increment: number,
+  dir: 'up' | 'down'
+): number {
+  const rounded = roundToIncrement(scaled, increment);
+  if (rounded !== current) {
+    return dir === 'down' ? Math.max(increment, rounded) : rounded;
+  }
+  if (dir === 'up') return roundToIncrement(current + increment, increment);
+  const stepped = roundToIncrement(current - increment, increment);
+  return stepped >= increment ? stepped : current;
+}
+
 export function roundToIncrement(kg: number, increment: number): number {
   if (increment <= 0) return Math.round(kg * 10) / 10;
   const rounded = Math.round(kg / increment) * increment;
@@ -208,7 +235,11 @@ export function lastPerformance(
 
     let highest1RM = 0;
     completedSets.forEach(s => {
-      const e1rm = estimate1RM(s.weightKg, s.reps, s.rpe);
+      // 지금 화면에서는 RIR을 누르면 스토어가 rpe도 같이 채워 주지만,
+      // 백업으로 들여온 옛 기록에는 rpe가 없을 수 있다. 그때 한계 세트가
+      // 실제보다 낮게 평가되지 않도록 RIR에서 되돌린다.
+      const sRpe = s.rpe ?? (s.actualRir !== undefined ? 10 - s.actualRir : undefined);
+      const e1rm = estimate1RM(s.weightKg, s.reps, sRpe);
       if (e1rm > highest1RM) highest1RM = e1rm;
     });
 
@@ -572,7 +603,7 @@ export function adjustRemaining(
   if (diff >= 2) {
     // 2 이상 힘들었음 -> -10%
     const currentWeight = completedSet.weightKg;
-    const adjusted = roundToIncrement(Math.max(increment, currentWeight * 0.9), increment);
+    const adjusted = stepAtLeastOne(currentWeight, currentWeight * 0.9, increment, 'down');
     return remainingSets.map(s => ({
       ...s,
       weightKg: adjusted,
@@ -583,7 +614,7 @@ export function adjustRemaining(
   if (diff <= -2) {
     // 2 이상 쉬웠음 -> +5% 또는 +1 증량단위
     const currentWeight = completedSet.weightKg;
-    const adjusted = roundToIncrement(currentWeight * 1.05, increment) || (currentWeight + increment);
+    const adjusted = stepAtLeastOne(currentWeight, currentWeight * 1.05, increment, 'up');
     return remainingSets.map(s => ({
       ...s,
       weightKg: adjusted,
@@ -701,8 +732,6 @@ export function calculateWeeklyVolume(
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
 
-  const mondayTime = monday.getTime();
-
   const muscleHardSets: Record<MuscleGroup, number> = {
     '가슴': 0, '등': 0, '하체': 0, '어깨': 0, '삼두': 0,
     '이두': 0, '복근': 0, '전완': 0, '유산소': 0, '전신': 0, '기타': 0
@@ -718,13 +747,23 @@ export function calculateWeeklyVolume(
   let modReps = 0;
   let highReps = 0;
 
+  // 주 경계는 **날짜 문자열끼리** 비교한다.
+  // "2026-08-24"를 new Date()로 파싱하면 UTC 자정으로 읽혀서 현지 자정과 어긋난다.
+  // 지금은 한국(UTC+9)이라 우연히 맞지만, UTC보다 서쪽에서 열면 월요일 운동이 통째로 빠진다.
+  // 게다가 **상한 검사가 아예 없어서**(sunday는 표시용으로만 쓰였다)
+  // 이번 주보다 뒤 날짜의 기록이 있으면 그것까지 합산됐다.
+  const mondayStr = toLocalDateString(monday);
+  const sundayStr = toLocalDateString(sunday);
+
   const processSession = (session: WorkoutSession) => {
-    const sTime = new Date(session.date || session.startTime).getTime();
-    if (sTime >= mondayTime) {
+    const sDateStr = session.date || toLocalDateString(new Date(session.startTime));
+    if (sDateStr >= mondayStr && sDateStr <= sundayStr) {
       session.exercises.forEach(ex => {
         const tier = ex.tier || 'secondary';
         ex.sets.forEach(set => {
-          if (!set.isCompleted || set.reps <= 0) return;
+          // reps가 비어 있을 수 있다(입력 중). `set.reps <= 0`은 undefined에서
+          // false가 되어 통과해 버리므로 양수인지 직접 확인한다.
+          if (!set.isCompleted || !(set.reps > 0)) return;
 
           // 횟수 대역 집계
           if (set.reps <= 5) lowReps += 1;

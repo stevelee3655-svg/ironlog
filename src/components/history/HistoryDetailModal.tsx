@@ -45,7 +45,7 @@ export const HistoryDetailModal: React.FC<HistoryDetailModalProps> = ({ session,
     setIsSyncing(true);
     setSyncMsg(null);
 
-    const res = await syncWorkoutToGoogleDrive(session, settings.gasWebhookUrl, settings.gasSharedSecret, prevTops);
+    const res = await syncWorkoutToGoogleDrive(session, settings.gasWebhookUrl, settings.gasSharedSecret, prevTops, history);
     setIsSyncing(false);
     setSyncMsg(res.message || (res.success ? 'Google Drive 전송 완료' : '전송 실패'));
 

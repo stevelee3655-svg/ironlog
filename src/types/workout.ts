@@ -126,6 +126,13 @@ export interface WorkoutSession {
   syncStatus: 'synced' | 'pending' | 'failed' | 'not_configured';
   syncedAt?: string;
   syncError?: string;
+  /**
+   * 자동 재전송을 몇 번 시도했는지. 웹훅 주소가 잘못돼 있으면 앱을 켤 때마다
+   * 실패한 기록 전부를 다시 쏘게 되는데, 기록이 쌓일수록 그게 수십 건이 된다.
+   * 일정 횟수를 넘기면 자동 재시도를 멈추고, 기록 화면의 「다시 보내기」로만
+   * 시도하게 한다. (외부 검토 지적, 2026-08-27)
+   */
+  syncAttempts?: number;
 }
 
 export interface Routine {

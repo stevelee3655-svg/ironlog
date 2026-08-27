@@ -68,7 +68,7 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
     setIsSyncing(true);
     setSyncResult(null);
 
-    const res = await syncWorkoutToGoogleDrive(session, settings.gasWebhookUrl, settings.gasSharedSecret, prevTops);
+    const res = await syncWorkoutToGoogleDrive(session, settings.gasWebhookUrl, settings.gasSharedSecret, prevTops, history);
     setIsSyncing(false);
     setSyncResult({
       success: res.success,

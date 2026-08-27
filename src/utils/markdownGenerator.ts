@@ -19,8 +19,10 @@ export interface TopSet {
  * YAML 문자열 이스케이프 헬퍼
  */
 export function yamlString(value: unknown): string {
-  const s = String(value ?? '');
-  return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  // 메모에 줄바꿈이 들어가면 따옴표 안에서 줄이 갈라져 머리말 전체가 깨진다.
+  // JSON 문자열은 YAML 1.2가 그대로 받아들이는 형식이라 이걸 쓰면 개행·탭·
+  // 제어문자까지 한 번에 안전해진다. (외부 검토 지적, 2026-08-27)
+  return JSON.stringify(String(value ?? ''));
 }
 
 /**
