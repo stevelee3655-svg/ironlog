@@ -3,6 +3,13 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  server: {
+    // 포트를 박아 두면 이전에 띄운 개발 서버가 5173을 잡고 있을 때 새로 못 뜬다.
+    // 도구가 PORT로 빈 포트를 지정해 주므로 그것을 그대로 쓰고, 없으면 기본값을 쓴다.
+    port: Number(process.env.PORT) || 5173,
+    // 그 포트마저 차 있으면 다음 빈 포트로 넘어간다(멈추지 않는다).
+    strictPort: false
+  },
   plugins: [
     react(),
     VitePWA({
