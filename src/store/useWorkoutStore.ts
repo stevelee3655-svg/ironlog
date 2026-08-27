@@ -6,6 +6,7 @@ import {
   SessionExercise, 
   WorkoutSet, 
   AppSettings, 
+  AppTheme,
   MuscleGroup,
   ExerciseTier,
   LoadType
@@ -34,6 +35,12 @@ const STORAGE_KEY = 'ironlog_state_v1';
  * 구하는 데만 쓴다. 설정 화면에서 언제든 고칠 수 있다.
  */
 const DEFAULT_BODY_WEIGHT = 62;
+
+/**
+ * 기본 테마. 수환이 2026-08-27에 스트라이프로 정했다.
+ * 색·글자 두께·자간은 `awesome-design-md/design-md/stripe/DESIGN.md`를 그대로 옮겼다.
+ */
+const DEFAULT_THEME: AppTheme = 'stripe';
 
 const DEFAULT_STARTER_EXERCISES: Exercise[] = [
   {
@@ -389,7 +396,7 @@ function loadInitialState() {
         enableSound: true,
         enableVibration: true,
         autoSyncOnFinish: true,
-        theme: 'nike' as const,
+        theme: DEFAULT_THEME,
         bodyWeightKg: DEFAULT_BODY_WEIGHT
       }
     };
@@ -447,7 +454,7 @@ function loadInitialState() {
           enableSound: parsed.settings?.enableSound ?? true,
           enableVibration: parsed.settings?.enableVibration ?? true,
           autoSyncOnFinish: parsed.settings?.autoSyncOnFinish ?? true,
-          theme: parsed.settings?.theme || 'nike',
+          theme: parsed.settings?.theme || DEFAULT_THEME,
           bodyWeightKg: parsed.settings?.bodyWeightKg ?? DEFAULT_BODY_WEIGHT
         }
       };
@@ -470,7 +477,7 @@ function loadInitialState() {
       enableSound: true,
       enableVibration: true,
       autoSyncOnFinish: true,
-      theme: 'nike' as const,
+      theme: DEFAULT_THEME,
       bodyWeightKg: DEFAULT_BODY_WEIGHT
     }
   };
@@ -511,6 +518,7 @@ function buildSessionExercise(ex: Exercise, history: WorkoutSession[], isDeload:
     repRangeLow: ex.repRangeLow,
     repRangeHigh: ex.repRangeHigh,
     isAssisted: ex.isAssisted,
+    ...(ex.cardioMetrics?.length ? { cardioMetrics: ex.cardioMetrics } : {}),
     sets,
     notes: ex.notes || '',
     recommendationReason: rec.reason,
@@ -822,6 +830,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
           repRangeLow: enriched.repRangeLow,
           repRangeHigh: enriched.repRangeHigh,
           isAssisted: enriched.isAssisted,
+          ...(enriched.cardioMetrics?.length ? { cardioMetrics: enriched.cardioMetrics } : {}),
           sets,
           notes: enriched.notes || '',
           recommendationReason: rec.reason,
@@ -1387,37 +1396,56 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
 
   // TASKS.md 5: Automatic Batch Sync
   flushPendingSyncs: async () => {
-    const { history, settings, updateSessionSyncStatus } = get();
-    if (!settings.gasWebhookUrl) return { sent: 0, failed: 0 };
-
-    // 계속 실패하는 기록을 앱 켤 때마다 다시 쏘지 않는다.
-    // 손으로 누르는 「다시 보내기」는 이 제한을 받지 않는다.
-    const pending = history.filter(
-      s => (s.syncStatus === 'pending' || s.syncStatus === 'failed') &&
-           (s.syncAttempts ?? 0) < MAX_AUTO_SYNC_ATTEMPTS
-    );
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const session of pending) {
-      const prev = previousTops(history, session.id);
-      const res = await syncWorkoutToGoogleDrive(
-        session, 
-        settings.gasWebhookUrl, 
-        settings.gasSharedSecret, 
-        prev,
-        history
-      );
-      if (res.success) {
-        updateSessionSyncStatus(session.id, 'synced');
-        sent += 1;
-      } else {
-        updateSessionSyncStatus(session.id, 'failed', res.message);
-        failed += 1;
-      }
+    // 부르는 곳이 넷이다 — 앱 켤 때 · 인터넷이 돌아올 때 · 운동을 끝냈을 때 ·
+    // 설정에서 손으로 누를 때. 잠금이 없으면 두 번이 겹쳐서 **같은 기록을 두 번
+    // 보낸다.** 게다가 아래 history는 시작할 때 한 번 읽은 값이라, 겹친 쪽은
+    // 이미 보낸 기록을 「아직 안 보냄」으로 보고 다시 집어 든다.
+    if (isFlushingSyncs) return { sent: 0, failed: 0 };
+    isFlushingSyncs = true;
+    try {
+      return await runFlushPendingSyncs(get);
+    } finally {
+      isFlushingSyncs = false;
     }
-
-    return { sent, failed };
   }
 }));
+
+/** flushPendingSyncs가 겹쳐 돌지 않게 막는 빗장. 스토어 밖에 두어 상태 갱신과 얽히지 않게 한다. */
+let isFlushingSyncs = false;
+
+async function runFlushPendingSyncs(
+  get: () => WorkoutStoreState
+): Promise<{ sent: number; failed: number }> {
+  const { history, settings, updateSessionSyncStatus } = get();
+  if (!settings.gasWebhookUrl) return { sent: 0, failed: 0 };
+
+  // 계속 실패하는 기록을 앱 켤 때마다 다시 쏘지 않는다.
+  // 손으로 누르는 「다시 보내기」는 이 제한을 받지 않는다.
+  const pending = history.filter(
+    s => (s.syncStatus === 'pending' || s.syncStatus === 'failed') &&
+         (s.syncAttempts ?? 0) < MAX_AUTO_SYNC_ATTEMPTS
+  );
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const session of pending) {
+    const prev = previousTops(history, session.id);
+    const res = await syncWorkoutToGoogleDrive(
+      session, 
+      settings.gasWebhookUrl, 
+      settings.gasSharedSecret, 
+      prev,
+      history
+    );
+    if (res.success) {
+      updateSessionSyncStatus(session.id, 'synced');
+      sent += 1;
+    } else {
+      updateSessionSyncStatus(session.id, 'failed', res.message);
+      failed += 1;
+    }
+  }
+
+  return { sent, failed };
+}

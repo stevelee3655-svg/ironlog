@@ -9,8 +9,8 @@ interface HeaderProps {
 }
 
 const THEMES: { id: AppTheme; label: string; dotColor: string }[] = [
-  { id: 'nike', label: 'Nike', dotColor: '#111111' },
   { id: 'stripe', label: 'Stripe', dotColor: '#533afd' },
+  { id: 'nike', label: 'Nike', dotColor: '#111111' },
   { id: 'spacex', label: 'SpaceX', dotColor: '#00e5ff' },
   { id: 'claude', label: 'Claude', dotColor: '#cc785c' }
 ];
@@ -21,22 +21,35 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onNavigateToWork
   const updateSettings = useWorkoutStore(state => state.updateSettings);
 
   const cycleTheme = () => {
-    const currentTheme = settings.theme || 'nike';
+    const currentTheme = settings.theme || 'stripe';
     const currentIndex = THEMES.findIndex(t => t.id === currentTheme);
     const nextTheme = THEMES[(currentIndex + 1) % THEMES.length].id;
     updateSettings({ theme: nextTheme });
   };
 
-  const currentThemeObj = THEMES.find(t => t.id === (settings.theme || 'nike')) || THEMES[0];
+  const currentThemeObj = THEMES.find(t => t.id === (settings.theme || 'stripe')) || THEMES[0];
+
+  const isStripe = (settings.theme || 'stripe') === 'stripe';
 
   return (
     <header 
-      className="sticky top-0 z-30 backdrop-blur-xl border-b pt-safe transition-colors duration-200"
+      className="sticky top-0 z-30 backdrop-blur-xl border-b pt-safe transition-colors duration-200 relative"
       style={{ 
         backgroundColor: 'var(--header-bg)', 
         borderColor: 'var(--header-border)' 
       }}
     >
+      {/*
+        스트라이프에서 가장 먼저 알아보는 것은 위쪽을 가로지르는 그라디언트 띠다
+        (크림 → 셔벗 → 라벤더 → 인디고 → 루비). 헤더 뒤에 깔고 아래로 흰 화면에 녹인다.
+        pointer-events-none이라 아래 버튼을 가리지 않는다.
+      */}
+      {isStripe && (
+        <div
+          aria-hidden="true"
+          className="stripe-mesh pointer-events-none absolute inset-x-0 top-0 h-full opacity-[0.22]"
+        />
+      )}
       <div className="max-w-lg mx-auto px-5 h-14 flex items-center justify-between">
         
         {/* Simple & Clean Wordmark */}

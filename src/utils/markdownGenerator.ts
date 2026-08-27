@@ -28,6 +28,24 @@ export function yamlString(value: unknown): string {
 }
 
 /**
+ * 사람이 자유롭게 쓴 글(메모·컨디션)을 **한 줄짜리 마크다운 조각**으로 만든다.
+ *
+ * 머리말(YAML)은 이미 yamlString()이 지키고 있는데 본문은 그대로 이어 붙고 있었다.
+ * 메모에 줄바꿈을 넣으면 뒤 줄이 목록에서 떨어져 나가고, `|`를 쓰면 표의 칸이
+ * 하나 더 생겨 그 줄이 통째로 어긋난다. 위키에서 읽을 때 깨진다.
+ *
+ * 보안 문제는 아니다 — 혼자 쓰는 앱이고 본인이 쓴 글이 본인 위키로 갈 뿐이다.
+ * 어디까지나 **글이 깨지지 않게** 하려는 것이다.
+ */
+export function inlineText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/\n+/g, ' / ')  // 줄바꿈은 눕혀서 한 줄로
+    .replace(/\|/g, '\\|')   // 표의 칸 구분자와 헷갈리지 않게
+    .trim();
+}
+
+/**
  * 로케일 독립적 천 단위 콤마 포맷터
  */
 export function comma(n: number): string {
@@ -329,7 +347,7 @@ ${session.exercises.filter(e => isStalled(history, e.exerciseId, 3, { isAssisted
 `;
     }
     if (ex.notes && ex.notes.trim()) {
-      md += `- **메모:** ${ex.notes.trim()}\n`;
+      md += `- **메모:** ${inlineText(ex.notes)}\n`;
     }
     if (ex.recommendationReason) {
       md += `- **추천 근거:** ${ex.recommendationReason}\n`;
@@ -353,8 +371,8 @@ ${session.exercises.filter(e => isStalled(history, e.exerciseId, 3, { isAssisted
   md += `\n---
 
 ## 📝 세션 메모
-- **컨디션:** ${session.condition || '특이사항 없음'}
-- **메모:** ${session.generalNotes || '없음'}
+- **컨디션:** ${inlineText(session.condition) || '특이사항 없음'}
+- **메모:** ${inlineText(session.generalNotes) || '없음'}
 
 ---
 

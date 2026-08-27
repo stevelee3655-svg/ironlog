@@ -19,8 +19,11 @@ export default defineConfig({
         name: 'IronLog - Gym & LLM Wiki Tracker',
         short_name: 'IronLog',
         description: '헬스 운동 기록 및 Google Drive LLM Wiki 자동 전송 트래커',
-        theme_color: '#090A0F',
-        background_color: '#090A0F',
+        // 스플래시·상태표시줄 색. 예전 값(#090A0F)은 폐기된 스페이스X 시안의 잔재라
+        // 흰 화면 앱을 켤 때 검은 화면이 한 번 번쩍였다. Stripe의 canvas는 흰색이다.
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
+        lang: 'ko',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',

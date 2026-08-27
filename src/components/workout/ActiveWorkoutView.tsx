@@ -125,7 +125,9 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                     borderColor: 'var(--card-border)' 
                   }}
                 >
-                  <div className="space-y-0.5">
+                  {/* 부위가 많은 날은 이 글이 길어진다. min-w-0을 안 주면 이 칸이
+                      버튼 자리를 밀어내서 「시작」이 두 줄로 찌그러진다. */}
+                  <div className="space-y-0.5 min-w-0 pr-3">
                     <h3 className="font-bold text-base">{rt.name}</h3>
                     <p className="text-xs opacity-60 font-medium">
                       {rt.targetMuscles.join(' · ')} &nbsp;·&nbsp; {rt.exerciseIds.length}개 종목
@@ -134,7 +136,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
 
                   <button
                     onClick={() => startRoutineSession(rt.id)}
-                    className="tactile-btn h-8.5 px-4 rounded-full text-xs font-bold shadow-sm"
+                    className="tactile-btn shrink-0 whitespace-nowrap h-8.5 px-4 rounded-full text-xs font-bold shadow-sm"
                     style={{ 
                       backgroundColor: 'var(--primary-btn-bg)', 
                       color: 'var(--primary-btn-text)' 
@@ -228,10 +230,10 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
             )}
           </div>
           
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1.5 overflow-x-auto -mx-1 px-1">
             <button
               onClick={toggleDeloadMode}
-              className={`text-[10px] font-bold px-2 py-1 rounded-full border transition-all ${
+              className={`text-[10px] font-bold px-2 py-1 rounded-full border transition-all shrink-0 whitespace-nowrap ${
                 activeSession.isDeload 
                   ? 'bg-amber-500 text-black border-amber-600' 
                   : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-300'
@@ -247,7 +249,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
                 <button
                   key={c}
                   onClick={() => updateActiveSessionDetails({ condition: c })}
-                  className={`tactile-btn text-[11px] px-2 py-0.5 rounded-full font-medium transition-all ${
+                  className={`tactile-btn text-[11px] px-2 py-0.5 rounded-full font-medium transition-all shrink-0 whitespace-nowrap ${
                     isSelected ? 'shadow-sm' : 'opacity-60 hover:opacity-90'
                   }`}
                   style={{

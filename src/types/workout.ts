@@ -97,6 +97,12 @@ export interface SessionExercise {
   repRangeHigh?: number;
   /** 눈금이 「도와주는 힘」인 기구인지. Exercise에서 복사해 둔다(기록만 보고도 알아야 한다). */
   isAssisted?: boolean;
+  /**
+   * 유산소 지표. Exercise에서 복사해 둔다.
+   * 이게 없으면 주간 집계가 유산소 한 판을 「저반복 근력 세트」로 세고,
+   * RPE가 없다는 이유로 「확인 불가」 숫자까지 부풀린다.
+   */
+  cardioMetrics?: CardioMetric[];
   sets: WorkoutSet[];
   notes?: string;
   recommendationReason?: string;

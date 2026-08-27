@@ -23,7 +23,7 @@ export const App: React.FC = () => {
   const settings = useWorkoutStore(state => state.settings);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', settings.theme || 'nike');
+    document.documentElement.setAttribute('data-theme', settings.theme || 'stripe');
   }, [settings.theme]);
 
   // TASKS.md 5: Auto-flush pending syncs on mount and when coming back online
@@ -42,7 +42,7 @@ export const App: React.FC = () => {
 
   return (
     <div 
-      data-theme={settings.theme || 'nike'}
+      data-theme={settings.theme || 'stripe'}
       className="min-h-screen flex flex-col transition-colors duration-200"
       style={{ backgroundColor: 'var(--canvas-bg)', color: 'var(--canvas-text)' }}
     >

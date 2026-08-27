@@ -246,7 +246,7 @@ export const SettingsView: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-2.5">
           {THEME_OPTIONS.map(th => {
-            const isSelected = (settings.theme || 'nike') === th.id;
+            const isSelected = (settings.theme || 'stripe') === th.id;
             return (
               <button
                 key={th.id}

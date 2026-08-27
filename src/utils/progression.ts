@@ -277,7 +277,12 @@ export function lastPerformance(
     const ex = session.exercises.find(e => e.exerciseId === exerciseId);
     if (!ex) continue;
 
-    const completedSets = ex.sets.filter(s => s.isCompleted && s.reps > 0);
+    // 무게 칸을 비운 채로 세트를 완료할 수 있다(지우는 도중에 체크가 눌린다).
+    // 그 undefined가 여기까지 흘러오면 다음 세션 추천에 **"undefinedkg 유지"**가 뜨고
+    // 새 세트의 무게가 통째로 undefined가 된다. 실제로 재현된다 — 여기서 0으로 막는다.
+    const completedSets = ex.sets
+      .filter(s => s.isCompleted && s.reps > 0)
+      .map(s => (Number.isFinite(s.weightKg) ? s : { ...s, weightKg: 0 }));
     if (completedSets.length === 0) continue;
 
     // 작업 무게 판정: 가장 많이 나온 무게 (동률이면 무거운 쪽)
@@ -484,6 +489,10 @@ export function recommend(
     // 어시스트 기구는 눈금이 「도와주는 힘」이라 20kg에서 시작하면 거의 맨몸 턱걸이가 된다.
     // 체중의 절반쯤 보조를 받는 자리에서 시작한다.
     if (assisted) starterWeight = roundToIncrement(bw * 0.5, increment);
+    // 시작 무게가 그 기구에서 **실제로 맞출 수 없는 값**이면 안 된다.
+    // 프라임(2.27kg 단위) 기구에 20kg을 띄우면 눈금에 그런 자리가 없다.
+    // 0kg(맨몸)은 그대로 둔다 — 반올림하면 한 칸이 튀어나온다.
+    if (starterWeight > 0) starterWeight = roundToIncrement(starterWeight, increment);
 
     const sets: SetTarget[] = Array.from({ length: setCount }, (_, i) => ({
       setNumber: i + 1,
@@ -888,9 +897,14 @@ export function toLocalDateString(d: Date): string {
  */
 export function calculateWeeklyVolume(
   history: WorkoutSession[],
-  currentSession?: WorkoutSession | null
+  currentSession?: WorkoutSession | null,
+  /**
+   * 「지금」으로 삼을 시각. 안 주면 진짜 지금이다.
+   * 함수 안에서 new Date()를 직접 만들면 **주 경계 계산을 시험할 방법이 없다** —
+   * 월요일·일요일 경계와 다음 주 기록 제외는 화면 숫자를 좌우하는데 그동안 무방비였다.
+   */
+  now: Date = new Date()
 ): WeeklyVolumeSummary {
-  const now = new Date();
   const day = now.getDay(); // 0(일) ~ 6(토)
   const diffToMonday = (day === 0 ? -6 : 1) - day;
   const monday = new Date(now);
@@ -929,18 +943,25 @@ export function calculateWeeklyVolume(
     if (sDateStr >= mondayStr && sDateStr <= sundayStr) {
       session.exercises.forEach(ex => {
         const tier = ex.tier || 'secondary';
+        // 유산소는 「1회」로 한 판을 적는다. 그걸 근력 세트처럼 세면
+        // 런닝머신 30분이 **저반복(1~5회) 세트 한 개**로 잡히고,
+        // RPE를 누르는 종목이 아니니 「확인 불가」 숫자도 매번 부풀린다.
+        // 옛 기록에는 cardioMetrics가 없을 수 있어 부위 이름으로도 받아 준다.
+        const isCardio = !!ex.cardioMetrics?.length || ex.muscleGroup === '유산소';
         ex.sets.forEach(set => {
           // reps가 비어 있을 수 있다(입력 중). `set.reps <= 0`은 undefined에서
           // false가 되어 통과해 버리므로 양수인지 직접 확인한다.
           if (!set.isCompleted || !(set.reps > 0)) return;
 
-          // 횟수 대역 집계
-          if (set.reps <= 5) lowReps += 1;
-          else if (set.reps <= 15) modReps += 1;
-          else highReps += 1;
+          // 횟수 대역 집계 — 근력 세트만
+          if (!isCardio) {
+            if (set.reps <= 5) lowReps += 1;
+            else if (set.reps <= 15) modReps += 1;
+            else highReps += 1;
+          }
 
           const hasRpe = set.rpe !== undefined || set.actualRir !== undefined;
-          if (!hasRpe) {
+          if (!hasRpe && !isCardio) {
             muscleUnconfirmed[ex.muscleGroup] = (muscleUnconfirmed[ex.muscleGroup] || 0) + 1;
             totalUnconfirmed += 1;
           }
