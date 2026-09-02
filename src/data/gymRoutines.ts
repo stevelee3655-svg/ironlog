@@ -58,6 +58,7 @@ const SEED = [
       'gym_wt_highrow',        // 「해머 스트렝스 MTS 하이 로우」로 적혀 있던 것 → 왓슨 하이 로우
       'gym_ez_revcurl',        // 이지바 리버스 컬
       'gym_pr_revpecdeck',     // 펙 덱 리어 델트 (아틀란티스와 번갈아)
+      'gym_cb_facepull',       // 페이스풀 (왓슨 케이블)
       'gym_pr_preachercurl',   // 프리처 컬 머신
       'gym_wd_bayesiancurl'    // 「암 컬 머신」으로 적혀 있던 것 → 왓슨 듀얼 케이블 베이지안 컬
     ],

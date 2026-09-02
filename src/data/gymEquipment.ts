@@ -105,6 +105,7 @@ export const GYM_EQUIPMENT: Seed[] = [
   ['gym_cb_ezrevcurl',     '[왓슨 케이블] 이지바 리버스 컬',          '전완', 'isolation', 'cable', PLATE],
   ['gym_cb_ropepushdown',  '[왓슨 케이블] 로프 푸쉬다운',             '삼두', 'isolation', 'cable', PLATE],
   ['gym_cb_barpushdown',   '[왓슨 케이블] 바 푸쉬다운',               '삼두', 'isolation', 'cable', PLATE],
+  ['gym_cb_facepull',      '[왓슨 케이블] 페이스풀',                  '어깨', 'isolation', 'cable', PLATE],
 
   // ── 6. 스미스 머신 ───────────────────────────────────────
   // 세 대가 서로 다른 기구다. 왓슨은 카운터웨이트를 제거한 모델이라 바 자체 무게가
